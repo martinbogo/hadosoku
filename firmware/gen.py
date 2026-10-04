@@ -143,10 +143,14 @@ class Gen:
         return self.snapshot()
 
     def fire(self):
-        """Emit one burst in pulse mode with a finite count."""
+        """Emit one burst in pulse mode with a finite count, restarting any
+        burst already running. (Queueing into the 4-entry PIO FIFO would block
+        the whole event loop on the second press.)"""
         s = self.s
-        if s['on'] and s['wave'] == 'pulse' and s['count'] > 0 and self.sm:
-            self._push_burst()
+        if s['on'] and s['wave'] == 'pulse' and s['count'] > 0:
+            self._stop()
+            self.info = {}
+            self._digital()
         return self.snapshot()
 
     def poll(self):
@@ -200,7 +204,10 @@ class Gen:
                      'period': period / sysf}
 
     def _push_burst(self):
+        # Never call sm.put on a full FIFO: it blocks until space appears.
         for v in self._cmd:
+            if self.sm.tx_fifo() >= 4:
+                break
             self.sm.put(v & 0xFFFFFFFF)
 
     def _shape(self, p):

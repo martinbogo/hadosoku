@@ -496,8 +496,15 @@ const Dev = {
     try { ws = new WebSocket('ws://' + host + '/ws'); } catch (e) { this.lost(); return; }
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
-    ws.onopen = () => { Sim.stop(); this.mode = 'live'; this.retry = 0; setConn(); };
+    this.lastMsg = performance.now(); this.lastPing = 0;
+    clearTimeout(this.ct);
+    // A board that is busy or unreachable can leave the attempt hanging; give up and retry.
+    this.ct = setTimeout(() => {
+      if (this.mode === 'connecting' && this.ws === ws) { this.ws = null; ws.onclose = null; try { ws.close(); } catch (e) { /* ignore */ } this.lost(); }
+    }, 6000);
+    ws.onopen = () => { Sim.stop(); clearTimeout(this.ct); this.mode = 'live'; this.retry = 0; this.lastMsg = performance.now(); setConn(); };
     ws.onmessage = ev => {
+      this.lastMsg = performance.now();
       if (typeof ev.data === 'string') return onDeviceMsg(JSON.parse(ev.data));
       if (new Uint8Array(ev.data, 1, 1)[0] & 2) acceptRoll(ev.data); else acceptFrame(decodeFrame(ev.data));
     };
@@ -523,6 +530,18 @@ const Dev = {
     Sim.start(); pushGen(); pushCfg(true);
   },
 };
+/* The board sends a status message at least once a second and drops pages that stay silent. */
+setInterval(() => {
+  if (Dev.mode !== 'live' || !Dev.ws) return;
+  const now = performance.now();
+  if (now - Dev.lastMsg > 5000) {                       // stream went quiet: reconnect
+    const w = Dev.ws; Dev.ws = null; w.onclose = null;
+    try { w.close(); } catch (e) { /* ignore */ }
+    Dev.lost();
+  } else if (now - Dev.lastPing > 3000) {
+    Dev.lastPing = now; Dev.send({ t: 'ping' });
+  }
+}, 1000);
 function onDeviceMsg(m) {
   if (m.t === 'hello') {
     S.info = m; Dev.gotHello = true;

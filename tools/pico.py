@@ -98,6 +98,8 @@ def main():
     if cmd == 'reset':
         secs = float(sys.argv[2]) if len(sys.argv) > 2 else 5
         p.interrupt()
+        p.s.write(b'\x02')              # leave raw REPL if a previous command left it there
+        time.sleep(0.2)
         p.s.write(b'\x04')
         end = time.time() + secs
         while time.time() < end:

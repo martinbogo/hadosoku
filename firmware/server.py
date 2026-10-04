@@ -6,16 +6,21 @@ import hashlib
 import json
 import os
 import struct
+import sys
 import time
 
+import machine
 from machine import Pin
 
 import capture
 import gen
+import net
 
-VERSION = '1.0'
+VERSION = '1.0.1'
 GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 MAGIC = 0x53
+SEND_TIMEOUT_MS = 5000     # give up on a client that stops reading
+IDLE_S = 15                # drop a client that sends nothing (the page pings every 3 s)
 
 
 class WS:
@@ -34,14 +39,25 @@ class WS:
         else:
             head = struct.pack('>BBH', op, 126, n)
         async with self.lock:
-            w = self.w
-            w.write(head + prefix)
-            mv = memoryview(payload)
-            for off in range(0, len(mv), 1460):
-                w.write(mv[off:off + 1460])
-                await w.drain()
-            if not len(mv):
-                await w.drain()
+            await self._write(head + prefix)
+            if len(payload):
+                await self._write(payload)
+
+    async def _write(self, data):
+        """Write everything, or raise OSError if the peer stalls for too long."""
+        s = self.w.s
+        mv = memoryview(data)
+        off = 0
+        t = time.ticks_ms()
+        while off < len(mv):
+            n = s.write(mv[off:])
+            if n:
+                off += n
+                t = time.ticks_ms()
+            elif time.ticks_diff(time.ticks_ms(), t) > SEND_TIMEOUT_MS:
+                raise OSError(110)
+            else:
+                await asyncio.sleep_ms(1)
 
     async def recv(self):
         """Next text message, or None once the peer closes."""
@@ -159,7 +175,11 @@ class Scope:
             if not c['run']:
                 if state != 'stop':
                     state = 'stop'
-                    await ws.send(json.dumps({'t': 'stat', 'state': state}))
+                    await self.stat(ws, 'stop', 0, t_stat)
+                    t_stat = time.ticks_ms()
+                elif time.ticks_diff(time.ticks_ms(), t_stat) > 1000:
+                    await self.stat(ws, 'stop', 0, t_stat)     # heartbeat so the page can tell we are alive
+                    t_stat = time.ticks_ms()
                 await asyncio.sleep_ms(30)
                 continue
             if c['roll']:
@@ -224,21 +244,47 @@ class Scope:
                 self.led.toggle()
             await asyncio.sleep_ms(0)
 
+    async def acquire_safe(self, ws):
+        """Run acquire() and survive anything except the client going away."""
+        while True:
+            try:
+                await self.acquire(ws)
+            except asyncio.CancelledError:
+                raise
+            except OSError:
+                ws.open = False             # client is gone or stalled: end the session
+                try:
+                    ws.w.close()
+                except Exception:
+                    pass
+                return
+            except Exception as e:
+                sys.print_exception(e)      # a bug in acquisition must not silence the stream
+                gc.collect()
+                await asyncio.sleep_ms(500)
+
     async def session(self, ws):
         if self.client is not None:
             old = self.client
             old.open = False
             try:
-                await old.send(json.dumps({'t': 'bye', 'why': 'taken'}))
+                await asyncio.wait_for(old.send(json.dumps({'t': 'bye', 'why': 'taken'})), 1)
+            except Exception:
+                pass
+            try:
                 old.w.close()
             except Exception:
                 pass
         self.client = ws
         await ws.send(json.dumps(self.info()))
-        task = asyncio.create_task(self.acquire(ws))
+        task = asyncio.create_task(self.acquire_safe(ws))
         try:
             while True:
-                msg = await ws.recv()
+                try:
+                    msg = await asyncio.wait_for(ws.recv(), IDLE_S)
+                except asyncio.TimeoutError:
+                    print('client silent for %d s, closing' % IDLE_S)
+                    break
                 if msg is None:
                     break
                 try:
@@ -249,8 +295,8 @@ class Scope:
                     await ws.send(json.dumps(reply))
         finally:
             task.cancel()
-            self.cap.stop()
-            if self.client is ws:
+            if self.client is ws:           # a replaced session must not stop its successor's capture
+                self.cap.stop()
                 self.client = None
 
 
@@ -327,5 +373,9 @@ async def main(ip, mode, wlan):
     scope.gen.apply({'on': False})
     await asyncio.start_server(make_handler(scope), '0.0.0.0', 80)
     print('Hadosoku %s ready: http://%s/  (%s)  free=%d' % (VERSION, ip, mode, gc.mem_free()))
+    asyncio.create_task(net.supervise(wlan, mode))
+    # If this loop ever stalls for 8 s the chip resets itself and the page reconnects.
+    wdt = machine.WDT(timeout=8000)
     while True:
-        await asyncio.sleep(3600)
+        wdt.feed()
+        await asyncio.sleep_ms(1000)

@@ -1,8 +1,11 @@
 """Wi-Fi bring-up: join the network from secrets.py, else fall back to an AP."""
+import asyncio
+import machine
 import network
 import time
 
 HOSTNAME = 'hadosoku'
+_creds = None
 
 
 def connect(timeout=25):
@@ -12,7 +15,9 @@ def connect(timeout=25):
         ssid, password = secrets.SSID, secrets.PASSWORD
     except (ImportError, AttributeError):
         ssid = password = None
+    global _creds
     if ssid:
+        _creds = (ssid, password)
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
         wlan.config(pm=0xA11140)        # no power save: lower latency
@@ -31,3 +36,25 @@ def connect(timeout=25):
     while not ap.active():
         time.sleep_ms(100)
     return ap.ifconfig()[0], 'ap', ap
+
+
+async def supervise(wlan, mode):
+    """Reconnect if the Wi-Fi link drops; reboot if it cannot be recovered."""
+    if mode != 'station':
+        return
+    down = 0
+    while True:
+        await asyncio.sleep(5)
+        if wlan.isconnected():
+            down = 0
+            continue
+        down += 1
+        print('wifi down for', down * 5, 's')
+        if down % 3 == 0 and _creds:
+            try:
+                wlan.disconnect()
+                wlan.connect(*_creds)
+            except Exception as e:
+                print('wifi reconnect failed:', e)
+        if down >= 24:                  # two minutes without a link
+            machine.reset()

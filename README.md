@@ -24,6 +24,7 @@ render.*
 - [Using the scope](#using-the-scope)
 - [Signal generator](#signal-generator)
 - [How it works](#how-it-works)
+- [Reliability](#reliability)
 - [Wire protocol](#wire-protocol)
 - [Project layout](#project-layout)
 - [Developing](#developing)
@@ -198,7 +199,7 @@ You should see something like:
 
 ```
 wifi station 192.168.0.103
-Hadosoku 1.0 ready: http://192.168.0.103/  (station)  free=98624
+Hadosoku 1.0.1 ready: http://192.168.0.103/  (station)  free=98624
 ```
 
 ### 5. Open it
@@ -312,7 +313,7 @@ deterministic number of clock cycles, so timing is exact to 8 ns and has no
 jitter from the CPU or Wi-Fi. Square and continuous pulse trains run forever on
 their own. A pulse burst (count above 0) fires once as soon as you enable it or
 change a setting, runs the requested number of pulses, then idles; press **Fire**
-to repeat it. Timing above about 240 kHz is exact by construction, but the
+to repeat it (pressing **Fire** while a burst is running restarts it). Timing above about 240 kHz is exact by construction, but the
 board's own 500 kS/s ADC cannot be used to check it.
 
 ### Analog outputs (sine, triangle, ramps, noise, DC)
@@ -376,6 +377,30 @@ instead.
   file with no dependencies): drawing, measurements, the FFT, interpolation and
   the aliasing logic. The Pico only samples, triggers and sends.
 
+## Reliability
+
+The board is meant to be left running, so it protects itself:
+
+- **Hardware watchdog.** The main loop feeds the RP2040 watchdog once a second.
+  If the loop ever stalls for 8 seconds the chip resets itself, starts the server
+  again and the page reconnects on its own. Pressing Ctrl-C on the USB console
+  (which is what `tools/pico.py` does) switches the watchdog off so it never
+  resets the board under a person who is working on it.
+- **Wi-Fi supervision.** If the link drops, the board retries the connection
+  and reboots if it has not recovered within two minutes.
+- **Stalled clients.** Writes to a browser give up after 5 seconds and a page that
+  falls silent for 15 seconds is dropped, so a browser that vanishes mid-stream
+  cannot hold the board. A bug in acquisition is logged on the console and
+  restarted instead of silently stopping the stream.
+- **The page** pings the board, treats a stream that goes quiet for 5 seconds as
+  dead, and retries a connection attempt that hangs for more than 6 seconds.
+
+One lesson worth recording: MicroPython's `StateMachine.put()` **blocks forever**
+when the 4-entry PIO FIFO is full, and in a cooperative event loop that freezes
+the whole server (Wi-Fi stays up, the USB console still answers, and nothing is
+served). Version 1.0 could be frozen this way by pressing **Fire** twice during a
+long burst. Version 1.0.1 never queues into the FIFO; Fire restarts the burst.
+
 ## Wire protocol
 
 Browser to board, JSON text frames:
@@ -385,7 +410,8 @@ Browser to board, JSON text frames:
 | `cfg` | `mask` (bit per ADC input), `rate` (per channel, S/s), `len` (samples per channel), `pre` (samples before the trigger), `src`, `level` and `hyst` (raw 12-bit), `edge` (`r` or `f`), `mode` (`auto`, `normal`, `free`, `single`), `run`, `roll` |
 | `run` | `on` |
 | `gen` | `on`, `wave` (`square`, `pulse`, `sine`, `triangle`, `ramp_up`, `ramp_down`, `noise`, `dc`), `freq`, `duty`, `amp`, `off`, `sym`, `width` (seconds), `count`, `invert` |
-| `fire` | none; emits one burst in pulse mode with a finite count |
+| `fire` | none; emits one burst in pulse mode with a finite count, restarting one already running |
+| `ping` | none; the page sends it every 3 s. The board drops a page that stays silent for 15 s, so a sleeping laptop cannot tie it up |
 
 Board to browser, JSON text frames: `hello` (firmware version, address, current
 configuration and generator state) once on connect, `genstate` (the generator
