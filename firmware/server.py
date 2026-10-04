@@ -8,13 +8,13 @@ import os
 import struct
 import time
 
-from machine import Pin, PWM
+from machine import Pin
 
 import capture
+import gen
 
-VERSION = '0.2'
+VERSION = '0.3'
 GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-GEN_PIN = 15
 MAGIC = 0x53
 
 
@@ -76,7 +76,7 @@ class Scope:
                     'src': 0, 'level': 2048, 'hyst': 40, 'edge': 'r',
                     'mode': 'auto', 'run': True, 'roll': False}
         self.client = None
-        self.pwm = None
+        self.gen = gen.Gen()
         self.hdr = bytearray(16)
         self.seq = 0
         self.t0 = time.ticks_ms()
@@ -85,28 +85,8 @@ class Scope:
     def info(self):
         return {'t': 'hello', 'fw': VERSION, 'ip': self.ip, 'net': self.mode,
                 'maxrate': capture.MAX_RATE, 'minrate': capture.MIN_RATE,
-                'nbuf': capture.NBUF, 'cfg': self.cfg, 'gen': self.gen_state(),
+                'nbuf': capture.NBUF, 'cfg': self.cfg, 'gen': self.gen.snapshot(),
                 'heap': gc.mem_free(), 'pins': ['GP26', 'GP27', 'GP28', 'GP29', 'TEMP']}
-
-    def gen_state(self):
-        g = getattr(self, '_gen', None)
-        return g or {'on': False, 'freq': 1000, 'duty': 50}
-
-    def set_gen(self, m):
-        g = self.gen_state()
-        g = {'on': bool(m.get('on', g['on'])),
-             'freq': max(8, min(2_000_000, int(m.get('freq', g['freq'])))),
-             'duty': max(0, min(100, float(m.get('duty', g['duty']))))}
-        self._gen = g
-        if g['on']:
-            if self.pwm is None:
-                self.pwm = PWM(Pin(GEN_PIN))
-            self.pwm.freq(g['freq'])
-            self.pwm.duty_u16(int(g['duty'] * 655.35))
-        elif self.pwm is not None:
-            self.pwm.deinit()
-            self.pwm = None
-            Pin(GEN_PIN, Pin.OUT).value(0)
 
     def apply(self, m):
         t = m.get('t')
@@ -117,12 +97,15 @@ class Scope:
         elif t == 'run':
             self.cfg['run'] = bool(m.get('on', True))
         elif t == 'gen':
-            self.set_gen(m)
+            return {'t': 'genstate', 'gen': self.gen.apply(m)}
+        elif t == 'fire':
+            return {'t': 'genstate', 'gen': self.gen.fire()}
 
     async def stat(self, ws, state, frames, t_stat, **extra):
         now = time.ticks_ms()
         dt = max(1, time.ticks_diff(now, t_stat))
         gc.collect()
+        self.gen.poll()
         st = {'t': 'stat', 'state': state, 'fps': round(frames * 1000 / dt, 1),
               'heap': gc.mem_free(), 'up': time.ticks_diff(now, self.t0) // 1000}
         st.update(extra)
@@ -225,6 +208,7 @@ class Scope:
             if new != state or time.ticks_diff(now, t_stat) > 1000:
                 dt = max(1, time.ticks_diff(now, t_stat))
                 gc.collect()
+                self.gen.poll()
                 st = {'t': 'stat', 'state': new, 'fps': round(frames * 1000 / dt, 1),
                       'heap': gc.mem_free(),
                       'up': time.ticks_diff(now, self.t0) // 1000}
@@ -242,9 +226,11 @@ class Scope:
 
     async def session(self, ws):
         if self.client is not None:
-            self.client.open = False
+            old = self.client
+            old.open = False
             try:
-                self.client.w.close()
+                await old.send(json.dumps({'t': 'bye', 'why': 'taken'}))
+                old.w.close()
             except Exception:
                 pass
         self.client = ws
@@ -256,9 +242,11 @@ class Scope:
                 if msg is None:
                     break
                 try:
-                    self.apply(json.loads(msg))
+                    reply = self.apply(json.loads(msg))
                 except ValueError:
-                    pass
+                    continue
+                if reply:
+                    await ws.send(json.dumps(reply))
         finally:
             task.cancel()
             self.cap.stop()
@@ -336,7 +324,7 @@ def make_handler(scope):
 async def main(ip, mode, wlan):
     gc.collect()
     scope = Scope(ip, mode, wlan)
-    scope.set_gen({'on': False})
+    scope.gen.apply({'on': False})
     await asyncio.start_server(make_handler(scope), '0.0.0.0', 80)
     print('Hadosoku %s ready: http://%s/  (%s)  free=%d' % (VERSION, ip, mode, gc.mem_free()))
     while True:

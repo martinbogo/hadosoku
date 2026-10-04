@@ -97,6 +97,8 @@ summary:hover{color:var(--text)}
 .step{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);font-weight:700;line-height:1;display:inline-grid;place-items:center}
 .step:hover{background:var(--raise)}
 .seg{display:flex;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:2px;gap:2px}
+.seg.wrap{flex-wrap:wrap}
+.seg.wrap button{flex:1 0 23%}
 .seg button{flex:1;border:0;background:transparent;padding:5px 8px;border-radius:6px;color:var(--muted);font-weight:600;white-space:nowrap}
 .seg button:hover{color:var(--text)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -202,6 +204,7 @@ kbd{font:600 11px var(--mono);background:var(--panel2);border:1px solid var(--li
     <details><summary>Display</summary><div class="sec">
       <div class="row"><span class="lbl">Trace</span><div class="seg" id="segInterp"><button data-v="auto">Auto</button><button data-v="linear">Linear</button><button data-v="sinc">Sinc</button><button data-v="dots">Dots</button></div></div>
       <div class="row"><span class="lbl">Persist</span><div class="seg" id="segPersist"><button data-v="0">Off</button><button data-v="1">Short</button><button data-v="2">Med</button><button data-v="3">Long</button><button data-v="4">Inf</button></div></div>
+      <div class="row"><span class="lbl">Smooth</span><div class="seg" id="segSmooth"><button data-v="1">Off</button><button data-v="4">4</button><button data-v="8">8</button><button data-v="16">16</button><button data-v="32">32</button><button data-v="64">64</button></div></div>
       <div class="row"><span class="lbl">Grid</span><div class="seg" id="segGrid"><button data-v="lines">Lines</button><button data-v="dots">Dots</button><button data-v="off">Off</button></div></div>
       <div class="row"><span class="lbl">Cursors</span><div class="seg" id="segCur"><button data-v="off">Off</button><button data-v="time">Time</button><button data-v="volt">Volt</button><button data-v="both">Both</button></div></div>
     </div></details>
@@ -214,12 +217,20 @@ kbd{font:600 11px var(--mono);background:var(--panel2);border:1px solid var(--li
       <div class="note">Levels are dBV, peak. The span depends on the sample rate chosen by the timebase.</div>
     </div></details>
 
-    <details open><summary>Test signal (GP15)</summary><div class="sec">
-      <div class="row"><span class="lbl">Output</span><label class="sw"><input type="checkbox" id="genOn" aria-label="Enable test signal"><i></i></label><span class="note" id="genNote"></span></div>
-      <div class="row"><span class="lbl">Frequency</span><input type="text" id="genFreq" class="grow mono" aria-label="Test signal frequency" inputmode="decimal"></div>
-      <div class="row"><span class="lbl"></span><span class="pill" data-f="100">100 Hz</span><span class="pill" data-f="1000">1 kHz</span><span class="pill" data-f="10000">10 kHz</span><span class="pill" data-f="50000">50 kHz</span></div>
-      <div class="row"><span class="lbl">Duty</span><input type="range" id="genDuty" min="1" max="99" step="1" aria-label="Duty cycle"><output class="val" id="genDutyVal" style="min-width:48px"></output></div>
-      <div class="note">3.3 V square wave. Jumper GP15 (pin 20) to GP26 (pin 31) to see it on CH1.</div>
+    <details open><summary>Signal generator (GP15)</summary><div class="sec" id="genSec">
+      <div class="row"><span class="lbl">Output</span><label class="sw"><input type="checkbox" id="genOn" aria-label="Enable generator output"><i></i></label><span class="note" id="genNote"></span></div>
+      <div class="row"><span class="lbl">Waveform</span><div class="seg wrap" id="segWave"><button data-v="square">Square</button><button data-v="pulse">Pulse</button><button data-v="sine">Sine</button><button data-v="triangle">Triangle</button><button data-v="ramp_up">Ramp up</button><button data-v="ramp_down">Ramp dn</button><button data-v="noise">Noise</button><button data-v="dc">DC</button></div></div>
+      <div class="row" data-w="square pulse sine triangle ramp_up ramp_down noise"><span class="lbl" id="genFreqLbl">Frequency</span><input type="text" id="genFreq" class="grow mono" aria-label="Generator frequency" inputmode="decimal"></div>
+      <div class="row" data-w="square pulse sine triangle ramp_up ramp_down noise"><span class="lbl"></span><span id="genPills" style="display:flex;gap:6px;flex-wrap:wrap"></span></div>
+      <div class="row" data-w="square"><span class="lbl">Duty</span><input type="range" id="genDuty" min="1" max="99" step="1" aria-label="Duty cycle"><output class="val" id="genDutyVal" style="min-width:48px"></output></div>
+      <div class="row" data-w="triangle"><span class="lbl">Symmetry</span><input type="range" id="genSym" min="1" max="99" step="1" aria-label="Triangle symmetry"><output class="val" id="genSymVal" style="min-width:48px"></output></div>
+      <div class="row" data-w="pulse"><span class="lbl">Width</span><input type="text" id="genWidth" class="grow mono" aria-label="Pulse width" placeholder="100 us"></div>
+      <div class="row" data-w="pulse"><span class="lbl">Count</span><input type="text" id="genCount" class="grow mono" aria-label="Pulses per burst, 0 for continuous" placeholder="0 = continuous"><button class="btn" id="btnFire" style="padding:4px 12px">Fire</button></div>
+      <div class="row" data-w="square pulse"><span class="lbl">Inverted</span><label class="sw"><input type="checkbox" id="genInvert" aria-label="Invert polarity"><i></i></label><span class="note">idle level high</span></div>
+      <div class="row" data-w="sine triangle ramp_up ramp_down noise"><span class="lbl">Amplitude</span><input type="text" id="genAmp" class="grow mono" aria-label="Amplitude peak to peak in volts" inputmode="decimal"><span class="note">Vpp</span></div>
+      <div class="row" data-w="sine triangle ramp_up ramp_down noise dc"><span class="lbl" id="genOffLbl">Offset</span><input type="text" id="genOff" class="grow mono" aria-label="Offset in volts" inputmode="decimal"><span class="note">V</span></div>
+      <div class="note mono" id="genInfo" style="font-size:11px"></div>
+      <div class="note" id="genHelp"></div>
     </div></details>
 
     <details><summary>Calibration</summary><div class="sec">
@@ -278,7 +289,8 @@ const S = {
   trig: { src: 0, level: 1.65, edge: 'r', mode: 'auto', hyst: 0.03, pre: 0.5 },
   avg: 1, interp: 'auto', persist: 0, grid: 'lines', cursors: 'off',
   fft: { on: false, n: 2048, win: 'hann', x: 'lin' },
-  gen: { on: true, freq: 1000, duty: 50 },
+  gen: { on: true, wave: 'square', freq: 1000, duty: 50, amp: 2, off: 1.65, sym: 50, width: 100e-6, count: 0, invert: false },
+  genInfo: {}, smooth: 1,
   cur: { x1: 3, x2: 7, y1: 2, y2: -2 },
   state: 'stop', frame: null, fps: 0, heap: 0, rssi: null, up: 0,
   epoch: 0, single: false, prevMode: 'auto', info: null,
@@ -287,7 +299,7 @@ try { Object.assign(S, JSON.parse(localStorage.getItem('hadosoku.prefs') || '{}'
 function savePrefs() {
   try {
     localStorage.setItem('hadosoku.prefs', JSON.stringify({
-      interp: S.interp, persist: S.persist, grid: S.grid, avg: S.avg, vref: S.vref,
+      interp: S.interp, persist: S.persist, grid: S.grid, avg: S.avg, vref: S.vref, smooth: S.smooth,
       fft: S.fft, cursors: S.cursors,
     }));
   } catch (e) { /* ignore */ }
@@ -376,8 +388,7 @@ function pushCfg(now) {
   updateInfo(); scheduleProbe();
 }
 function pushGen() {
-  Dev.send({ t: 'gen', on: S.gen.on, freq: S.gen.freq, duty: S.gen.duty });
-  Sim.gen = { ...S.gen };
+  Dev.send({ t: 'gen', ...S.gen });
   scheduleProbe(2000);
 }
 
@@ -429,10 +440,17 @@ function acceptRoll(buf) {
   frameWaiters.splice(0).forEach(w => w(S.frame));
   redraw(); updateMeasurements();
 }
+function boxcar(a, w) {
+  const n = a.length, h = w >> 1, ps = new Float64Array(n + 1), out = new Float32Array(n);
+  for (let i = 0; i < n; i++) ps[i + 1] = ps[i] + a[i];
+  for (let i = 0; i < n; i++) { const l = Math.max(0, i - h), r = Math.min(n - 1, i + h); out[i] = (ps[r + 1] - ps[l]) / (r - l + 1); }
+  return out;
+}
 function acceptFrame(f) {
   if (!f) return;
   if (S.probing) { frameWaiters.splice(0).forEach(w => w(f)); return; }
   S.roll = null;
+  if (S.smooth > 1) for (const c of f.chans) f.data[c] = boxcar(f.data[c], S.smooth);
   if (S.avg > 1 && f.trig) {
     const sameShape = avgState && avgState.n === f.n && avgState.rate === f.rate && avgState.mask === f.mask && avgState.epoch === S.epoch;
     if (sameShape) {
@@ -464,13 +482,14 @@ const nextFrame = (ms = 4000) => new Promise((res, rej) => {
 /* device link (WebSocket) and simulator                              */
 /* ================================================================== */
 const Dev = {
-  mode: 'offline', ws: null, host: null, retry: 0, gotHello: false,
+  mode: 'offline', ws: null, host: null, retry: 0, gotHello: false, kicked: false,
   send(obj) {
     if (this.mode === 'live' && this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(obj));
     else if (this.mode === 'demo') Sim.apply(obj);
   },
   connect(host) {
     this.stop();
+    this.kicked = false;
     this.host = host; this.mode = 'connecting'; this.gotHello = false;
     setConn();
     let ws;
@@ -488,7 +507,7 @@ const Dev = {
   lost() {
     const was = this.mode;
     this.mode = 'offline'; this.ws = null; setConn();
-    if (this.host && was !== 'demo') {
+    if (this.host && was !== 'demo' && !this.kicked) {
       const wait = Math.min(5000, 800 + this.retry++ * 600);
       clearTimeout(this.rt);
       this.rt = setTimeout(() => { if (this.mode === 'offline') this.connect(this.host); }, wait);
@@ -508,7 +527,12 @@ function onDeviceMsg(m) {
   if (m.t === 'hello') {
     S.info = m; Dev.gotHello = true;
     if (m.heap) S.heap = m.heap;
-    pushGen(); pushCfg(true); setConn();
+    if (m.gen && m.gen.on) adoptGen(m.gen); else pushGen();
+    pushCfg(true); setConn();
+  } else if (m.t === 'genstate') {
+    adoptGen(m.gen);
+  } else if (m.t === 'bye') {
+    Dev.kicked = true; Dev.stop(); Dev.mode = 'offline'; S.state = 'stop'; setConn(); updateRunUi();
   } else if (m.t === 'stat') {
     S.state = m.state;
     if (m.fps !== undefined) S.fps = m.fps;
@@ -522,13 +546,21 @@ function onDeviceMsg(m) {
 
 /* Simulated Pico: same cfg in, same binary frames out. */
 const Sim = {
-  cfg: null, timer: 0, t0: 0, gen: { on: true, freq: 1000, duty: 50 }, seq: 0, frames: 0, last: 0,
+  cfg: null, timer: 0, t0: 0, gen: { on: true, wave: 'square', freq: 1000, duty: 50, amp: 2, off: 1.65, sym: 50, width: 100e-6, count: 0, invert: false },
+  fireT: 0, tNow: 0, t0cur: 0, seq: 0, frames: 0, last: 0,
   start() { this.stop(); this.cfg = this.cfg || devCfg(); this.tick(); },
   stop() { clearTimeout(this.timer); this.timer = 0; },
   apply(m) {
     if (m.t === 'cfg') this.cfg = m;
     else if (m.t === 'run') this.cfg.run = m.on;
-    else if (m.t === 'gen') this.gen = { on: m.on, freq: m.freq, duty: m.duty };
+    else if (m.t === 'gen') { this.gen = { ...m }; this.fireT = performance.now() / 1000; this.echo(); }
+    else if (m.t === 'fire') { this.fireT = performance.now() / 1000; this.echo(); }
+  },
+  echo() {
+    const g = this.gen, dig = g.wave === 'square' || g.wave === 'pulse';
+    const info = dig ? { digital: true, freq_actual: g.freq, width_actual: g.wave === 'pulse' ? g.width : g.duty / 100 / g.freq, duty_actual: g.duty }
+      : { digital: false, n: Math.round(309000 / Math.max(g.freq, 1)), levels: 249, carrier: 309000, freq_actual: g.freq };
+    setTimeout(() => onDeviceMsg({ t: 'genstate', gen: { ...g, ...info } }), 0);
   },
   noise() { return (Math.random() + Math.random() + Math.random() - 1.5) * 0.012; },
   signal(c, t) {
@@ -536,13 +568,7 @@ const Sim = {
       const w = 2 * Math.PI * 1000 * t;
       return 1.65 + 1.0 * Math.sin(w) + 0.14 * Math.sin(3 * w + 0.6) + this.noise();
     }
-    if (c === 1) {
-      if (!this.gen.on) return 0.002 + this.noise() * 0.3;
-      const T = 1 / this.gen.freq, ph = ((t % T) + T) % T, D = T * this.gen.duty / 100, tr = Math.min(4e-6, D / 3, (T - D) / 3);
-      let v;
-      if (ph < tr) v = ph / tr; else if (ph < D) v = 1; else if (ph < D + tr) v = 1 - (ph - D) / tr; else v = 0;
-      return 3.28 * v + this.noise();
-    }
+    if (c === 1) return this.genValue(t);
     const T = 1 / 2300, ph = ((t % T) + T) % T / T;
     return 1.1 + 0.8 * (ph < 0.5 ? 4 * ph - 1 : 3 - 4 * ph) + this.noise();
   },
@@ -562,6 +588,7 @@ const Sim = {
     if (now < this.waitUntil) return;
     this.waitUntil = 0;
     const t0 = Math.random() * 0.01;
+    this.tNow = performance.now() / 1000; this.t0cur = t0;
     const raw = new Uint16Array(total * nch.length);
     for (let i = 0; i < total; i++) {
       const t = t0 + i / rate;
@@ -598,6 +625,29 @@ const Sim = {
       S.fps = Math.round(this.frames * 1000 / (now - this.last) * 10) / 10; this.frames = 0; this.last = now;
       S.heap = 90000; S.up = Math.round(now / 1000); updateStatus();
     }
+  },
+  genValue(t) {
+    const g = this.gen;
+    if (!g.on) return 0.002 + this.noise() * 0.3;
+    const half = g.amp / 2, off = clamp(g.off, half, 3.3 - half);
+    if (g.wave === 'dc') return g.off + this.noise() * 0.3;
+    if (g.wave === 'noise') return off + g.amp * (Math.random() - 0.5);
+    const T = 1 / g.freq, p = (((t % T) + T) % T) / T;
+    if (g.wave === 'sine') return off + half * Math.sin(2 * Math.PI * p) + this.noise();
+    if (g.wave === 'triangle') { const k = g.sym / 100; return off + half * (p < k ? -1 + 2 * p / k : 1 - 2 * (p - k) / (1 - k)) + this.noise(); }
+    if (g.wave === 'ramp_up') return off + half * (-1 + 2 * p) + this.noise();
+    if (g.wave === 'ramp_down') return off + half * (1 - 2 * p) + this.noise();
+    const D = g.wave === 'square' ? g.duty / 100 : Math.min(0.98, g.width * g.freq);
+    let active = true;
+    if (g.wave === 'pulse' && g.count > 0) {
+      const tt = (this.tNow - this.fireT) + (t - this.t0cur);
+      active = tt >= 0 && tt < g.count * T;
+    }
+    const x = p * T, Dt = D * T, tr = Math.min(4e-6, Dt / 3, (T - Dt) / 3);
+    let v = 0;
+    if (active) { if (x < tr) v = x / tr; else if (x < Dt) v = 1; else if (x < Dt + tr) v = 1 - (x - Dt) / tr; }
+    if (g.invert) v = 1 - v;
+    return 3.28 * v + this.noise();
   },
   slow(c, t) {
     if (c === 0) return 1.65 + 1.0 * Math.sin(2 * Math.PI * 0.4 * t) + 0.18 * Math.sin(2 * Math.PI * 3.1 * t) + this.noise();
@@ -644,10 +694,13 @@ function measure(v, rate, scale) {
     if (armR && a < mid && b >= mid) { rise.push((i - 1 + (mid - a) / (b - a)) / rate); armR = false; }
     if (armF && a > mid && b <= mid) { fall.push((i - 1 + (a - mid) / (a - b)) / rate); armF = false; }
   }
-  if (rise.length >= 2) {
-    out.period = (rise[rise.length - 1] - rise[0]) / (rise.length - 1);
-  } else if (fall.length >= 2) {
-    out.period = (fall[fall.length - 1] - fall[0]) / (fall.length - 1);
+  const edgesT = rise.length >= 2 ? rise : fall;
+  if (edgesT.length >= 2) {
+    out.period = (edgesT[edgesT.length - 1] - edgesT[0]) / (edgesT.length - 1);
+    if (edgesT.length >= 4) {
+      const iv = edgesT.slice(1).map((t, i) => t - edgesT[i]);
+      out.jitter = (Math.max(...iv) - Math.min(...iv)) / out.period;
+    }
   }
   if (out.period) {
     out.freq = 1 / out.period;
@@ -1264,7 +1317,7 @@ async function autoset() {
 const aliasOf = (f, fs) => Math.abs(f - Math.round(f / fs) * fs);
 let probeTimer = 0, aliasNote = 'auto';
 async function aliasProbe(manual) {
-  const busy = S.probing || autosetting || !S.run || Dev.mode === 'offline' || Dev.mode === 'connecting';
+  const busy = S.probing || autosetting || S.single || !S.run || Dev.mode === 'offline' || Dev.mode === 'connecting';
   if (isRoll()) { if (manual) toast('Alias check is not available in roll mode'); return; }
   if (busy) { if (manual) toast('Alias check needs the scope running'); return; }
   const p = plan();
@@ -1276,33 +1329,50 @@ async function aliasProbe(manual) {
       Dev.send({ ...base, rate });
       for (let i = 0; i < 8; i++) {
         const f = await nextFrame(6000);
-        if (f.n === 1999 && Math.abs(f.rate - rate) / rate < 0.02) return f;
+        if (f.n === 1999 && Math.abs(f.rate - rate) / rate < 0.02) {
+          // The display's Smooth filter acts as the anti-alias filter, so judge what the user sees.
+          if (S.smooth > 1) for (const c of f.chans) f.data[c] = boxcar(f.data[c], S.smooth);
+          return f;
+        }
       }
       throw new Error('no probe frame');
     };
-    const f1 = await grab(p.rate), f2 = await grab(Math.round(p.rate * 0.77));
-    let found = null, measured = 0;
-    for (const c of f1.chans) {
-      if (!S.ch[c].en || !f2.data[c]) continue;
-      const a = measure(f1.data[c], f1.rate, 1).freq, b = measure(f2.data[c], f2.rate, 1).freq;
-      if (!a || !b) continue;
-      measured++;
-      // If the first reading is real, it must predict the second one.
-      const near = a > 0.4 * f1.rate;     // measurement itself is shaky this close to Nyquist
-      if (Math.abs(aliasOf(a, f2.rate) - b) / Math.max(b, 1) > 0.04 && !found) {
-        let est = null;
-        for (let k = 1; k <= (near ? 1 : 4) && est === null; k++) {   // near the limit only the nearest alias is plausible
-          for (const sg of [-1, 1]) {
-            const cand = k * f1.rate + sg * a;
-            if (cand > 0 && Math.abs(aliasOf(cand, f2.rate) - b) / b < 0.04 && (est === null || cand < est)) est = cand;
+    // If the first reading is real, it must predict the reading at another rate.
+    const judge = (f1, f2) => {
+      let found = null, measured = 0, noisy = false;
+      for (const c of f1.chans) {
+        if (!S.ch[c].en || !f2.data[c]) continue;
+        const mA = measure(f1.data[c], f1.rate, 1), mB = measure(f2.data[c], f2.rate, 1), a = mA.freq, b = mB.freq;
+        S.aliasDebug = { c, a, b, ja: mA.jitter, jb: mB.jitter };
+        if (!a || !b) continue;
+        // Sample-quantised edges of a fast signal show up to ~0.4 jitter by themselves; noise ripple shows 0.8 and more.
+        if ((mA.jitter || 0) > 0.6 || (mB.jitter || 0) > 0.6) { noisy = true; continue; }   // edges too irregular to judge
+        measured++;
+        const near = a > 0.4 * f1.rate;     // measurement itself is shaky this close to Nyquist
+        if (Math.abs(aliasOf(a, f2.rate) - b) / Math.max(b, 1) > 0.04 && !found) {
+          let est = null;
+          for (let k = 1; k <= (near ? 1 : 4) && est === null; k++) {   // near the limit only the nearest alias is plausible
+            for (const sg of [-1, 1]) {
+              const cand = k * f1.rate + sg * a;
+              if (cand > 0 && Math.abs(aliasOf(cand, f2.rate) - b) / b < 0.04 && (est === null || cand < est)) est = cand;
+            }
           }
+          if (est !== null || !near) found = { c, a, b, est, fs: f1.rate };
         }
-        if (est !== null || !near) found = { c, a, b, est, fs: f1.rate };
       }
+      return { found, measured, noisy };
+    };
+    const f1 = await grab(p.rate);
+    let r = null;
+    // A second rate that happens to be a simple fraction of a PWM carrier or other signal
+    // can look noisy, so try a few unrelated ones before giving up.
+    for (const k of [0.77, 0.87, 0.67]) {
+      r = judge(f1, await grab(Math.round(p.rate * k)));
+      if (r.measured || !r.noisy) break;
     }
-    S.alias = found; S.aliasRate = p.rate;
-    aliasNote = found ? 'ALIASED' : measured ? 'OK' : 'no periodic signal';
-    if (manual) toast(found ? 'Aliasing detected on CH' + (found.c + 1) : measured ? 'No aliasing detected' : 'Alias check needs a periodic signal');
+    S.alias = r.found; S.aliasRate = p.rate;
+    aliasNote = r.found ? 'ALIASED' : r.measured ? 'OK' : r.noisy ? 'too noisy to judge' : 'no periodic signal';
+    if (manual) toast(r.found ? 'Aliasing detected on CH' + (r.found.c + 1) : r.measured ? 'No aliasing detected' : 'Alias check needs a clean periodic signal');
   } catch (e) {
     aliasNote = 'check failed';
   } finally {
@@ -1341,20 +1411,91 @@ $('#btnAlias').onclick = () => aliasProbe(true);
 setInterval(() => aliasProbe(false), 5000);
 
 /* generator */
+const GEN_DIGITAL = ['square', 'pulse'];
+const genLimits = () => GEN_DIGITAL.includes(S.gen.wave) ? [0.02, 12.5e6] : S.gen.wave === 'noise' ? [10, 5e5] : [0.05, 1e5];
+const GEN_PILLS = { digital: [1, 100, 1000, 1e5, 1e6], analog: [10, 100, 1000, 1e4], noise: [1000, 1e4, 1e5, 5e5] };
+function parseUnit(str, units) {
+  const m = /^\s*([\d.]+(?:e[+-]?\d+)?)\s*([a-zµ]*)\s*$/i.exec(str);
+  if (!m) return NaN;
+  const u = m[2].toLowerCase().replace('µ', 'u');
+  return u in units ? parseFloat(m[1]) * units[u] : NaN;
+}
+const parseTime = s => parseUnit(s, { '': 1, s: 1, ms: 1e-3, m: 1e-3, us: 1e-6, u: 1e-6, ns: 1e-9, n: 1e-9 });
+const parseVolts = s => parseUnit(s, { '': 1, v: 1, mv: 1e-3, m: 1e-3 });
+function adoptGen(g) {
+  for (const k of Object.keys(S.gen)) if (g[k] !== undefined) S.gen[k] = g[k];
+  S.genInfo = g;
+  syncGenUi();
+}
 function syncGenUi() {
-  $('#genOn').checked = S.gen.on;
-  if (document.activeElement !== $('#genFreq')) $('#genFreq').value = si(S.gen.freq, 'Hz');
-  $('#genDuty').value = S.gen.duty; $('#genDutyVal').textContent = S.gen.duty + ' %';
-  $('#genNote').textContent = S.gen.on ? '3.3 V, GP15' : 'off';
+  const g = S.gen, w = g.wave, dig = GEN_DIGITAL.includes(w), info = S.genInfo || {};
+  $('#genOn').checked = g.on;
+  $$('#segWave button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === w)));
+  $$('#genSec [data-w]').forEach(r => { r.style.display = r.dataset.w.split(' ').includes(w) ? '' : 'none'; });
+  $('#genFreqLbl').textContent = w === 'noise' ? 'Update rate' : w === 'pulse' ? 'Rate' : 'Frequency';
+  $('#genOffLbl').textContent = w === 'dc' ? 'Level' : 'Offset';
+  const set = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; };
+  set('#genFreq', si(g.freq, 'Hz'));
+  set('#genWidth', si(g.width, 's'));
+  set('#genCount', g.count ? String(g.count) : '');
+  set('#genAmp', g.amp.toFixed(2));
+  set('#genOff', g.off.toFixed(2));
+  $('#genDuty').value = g.duty; $('#genDutyVal').textContent = Math.round(g.duty) + ' %';
+  $('#genSym').value = g.sym; $('#genSymVal').textContent = Math.round(g.sym) + ' %';
+  $('#genInvert').checked = g.invert;
+  $('#btnFire').disabled = !(w === 'pulse' && g.count > 0 && g.on);
+  $('#btnFire').style.opacity = $('#btnFire').disabled ? .4 : 1;
+  const pills = dig ? GEN_PILLS.digital : w === 'noise' ? GEN_PILLS.noise : GEN_PILLS.analog;
+  $('#genPills').innerHTML = pills.map(f => `<span class="pill" data-f="${f}">${si(f, 'Hz', 3).replace(/\.0+ /, ' ')}</span>`).join('');
+  $('#genNote').textContent = !g.on ? 'off' : dig ? 'digital 3.3 V' : 'PWM encoded';
+  const bits = [];
+  if (g.on && info.freq_actual !== undefined && w !== 'dc') bits.push(`actual ${si(info.freq_actual, 'Hz', 5)}`);
+  if (g.on && dig && info.width_actual !== undefined) bits.push(`width ${si(info.width_actual, 's', 4)}, duty ${info.duty_actual.toFixed(2)} %`);
+  if (g.on && !dig && info.levels) bits.push(`${info.levels} levels (${Math.log2(info.levels).toFixed(1)} bit), carrier ${si(info.carrier, 'Hz', 4)}` + (info.n ? `, ${info.n} pts/cycle` : ''));
+  $('#genInfo').textContent = bits.join('  |  ');
+  $('#genHelp').textContent = dig
+    ? 'Exact timing in 8 ns steps. ' + (w === 'pulse' ? 'Set Count to a number and press Fire for a burst, or leave it at 0 for a continuous train.' : '')
+    : 'No DAC on the Pico: this is PWM. The average voltage follows the shape, but the pin chops at the carrier. Add an RC low-pass (for example 1.6 k and 100 nF) for a smooth signal, or use Display > Smooth to average it on screen.';
+  $('#genHelp').textContent += '  Loop GP15 (pin 20) to GP26 (pin 31) to view it on CH1.';
 }
 $('#genOn').onchange = e => { S.gen.on = e.target.checked; syncGenUi(); pushGen(); };
-$('#genFreq').addEventListener('change', e => {
-  const f = parseSI(e.target.value);
-  if (isFinite(f) && f >= 8 && f <= 2e6) { S.gen.freq = Math.round(f); pushGen(); } else toast('Frequency 8 Hz to 2 MHz');
+$('#segWave').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.gen.wave = b.dataset.v;
+  const [lo, hi] = genLimits();
+  S.gen.freq = clamp(S.gen.freq, lo, hi);
+  if (S.gen.wave === 'dc') S.gen.amp = 0;
+  else if (S.gen.amp < 0.05) S.gen.amp = 2;
+  S.gen.on = true;
+  syncGenUi(); pushGen();
+});
+function genField(id, parse, apply, hint) {
+  $(id).addEventListener('change', e => {
+    const v = parse(e.target.value);
+    if (isFinite(v) && apply(v)) pushGen(); else toast(hint);
+    syncGenUi();
+  });
+}
+genField('#genFreq', parseSI, v => { const [lo, hi] = genLimits(); if (v < lo || v > hi) return false; S.gen.freq = v; return true; },
+  'Out of range for this waveform');
+genField('#genWidth', parseTime, v => { if (v < 24e-9) return false; S.gen.width = v; return true; }, 'Width: 24 ns or more, e.g. 10 us');
+genField('#genAmp', parseVolts, v => { if (v < 0 || v > 3.3) return false; S.gen.amp = v; return true; }, 'Amplitude 0 to 3.3 V');
+genField('#genOff', parseVolts, v => { if (v < 0 || v > 3.3) return false; S.gen.off = v; return true; }, 'Offset 0 to 3.3 V');
+$('#genCount').addEventListener('change', e => {
+  const t = e.target.value.trim().toLowerCase();
+  const n = t === '' || t === 'inf' ? 0 : parseInt(t, 10);
+  if (!isFinite(n) || n < 0 || n > 1e9) toast('Count: a whole number, or 0 for continuous');
+  else { S.gen.count = n; pushGen(); }
   syncGenUi();
 });
-$$('.pill[data-f]').forEach(p => p.onclick = () => { S.gen.freq = +p.dataset.f; S.gen.on = true; syncGenUi(); pushGen(); });
+$('#genPills').addEventListener('click', e => {
+  const p = e.target.closest('.pill'); if (!p) return;
+  S.gen.freq = +p.dataset.f; S.gen.on = true; syncGenUi(); pushGen();
+});
 $('#genDuty').oninput = e => { S.gen.duty = +e.target.value; syncGenUi(); pushGen(); };
+$('#genSym').oninput = e => { S.gen.sym = +e.target.value; syncGenUi(); pushGen(); };
+$('#genInvert').onchange = e => { S.gen.invert = e.target.checked; pushGen(); };
+$('#btnFire').onclick = () => { Dev.send({ t: 'fire' }); };
 
 /* misc side controls */
 $('#tdDn').onclick = () => stepTdiv(-1);
@@ -1385,6 +1526,7 @@ refreshers.mode = seg('#segMode', () => S.trig.mode, v => {
 });
 refreshers.hyst = seg('#segHyst', () => S.trig.hyst, v => { S.trig.hyst = v; pushCfg(true); }, Number);
 refreshers.avg = seg('#segAvg', () => S.avg, v => { S.avg = v; resetAverage(); savePrefs(); updateInfo(); }, Number);
+seg('#segSmooth', () => S.smooth, v => { S.smooth = v; savePrefs(); redraw(); }, Number);
 seg('#segInterp', () => S.interp, v => { S.interp = v; savePrefs(); clearPersist(); redraw(); });
 seg('#segPersist', () => S.persist, v => { S.persist = v; savePrefs(); clearPersist(); redraw(); }, Number);
 seg('#segGrid', () => S.grid, v => { S.grid = v; savePrefs(); redraw(); });
@@ -1404,7 +1546,7 @@ function setConn() {
   $('#txtConn').textContent = m === 'live' && S.info ? `Live ${S.info.ip || Dev.host}` : t;
   const bn = $('#banner');
   bn.style.display = m === 'offline' ? 'block' : 'none';
-  bn.textContent = 'Connection lost, retrying...';
+  bn.textContent = Dev.kicked ? 'Another browser took over this scope. Click the connection chip to take it back.' : 'Connection lost, retrying...';
   updateStatus(); redraw();
 }
 function updateStatus() {

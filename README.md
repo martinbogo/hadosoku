@@ -3,7 +3,8 @@
 A browser-based oscilloscope for the Raspberry Pi Pico W. The board samples
 three analog inputs at up to 500 kS/s, finds the trigger, and serves the user
 interface and the data stream itself over Wi-Fi. There is nothing to install on
-the computer: open the board's address in any modern browser.
+the computer: open the board's address in any modern browser. The same board can also act as a
+signal generator: square, pulse, sine, triangle, ramps, noise and DC.
 
 *Hadosoku* is a portmanteau of the Japanese words for wave (波動, *hadō*) and
 measurement (測定, *sokutei*).
@@ -21,6 +22,7 @@ render.*
 - [Hardware](#hardware)
 - [Quick start](#quick-start)
 - [Using the scope](#using-the-scope)
+- [Signal generator](#signal-generator)
 - [How it works](#how-it-works)
 - [Wire protocol](#wire-protocol)
 - [Project layout](#project-layout)
@@ -54,8 +56,13 @@ render.*
   reference voltage.
 - **Autoset**, keyboard shortcuts, **PNG** and **CSV** export, light and dark
   themes, and a layout that works on a phone.
-- **Built-in test signal** on GP15 (a 3.3 V square wave, 8 Hz to 2 MHz) so you
-  can try everything with a single jumper wire.
+- **Signal generator** on GP15: square and pulse waves with exact timing
+  (0.02 Hz to 12.5 MHz, 8 ns resolution, burst counts, polarity), plus
+  PWM-encoded sine, triangle, ramps, noise and DC levels. With one jumper wire
+  from GP15 to GP26 you can test everything without any other equipment. See
+  [Signal generator](#signal-generator).
+- **Smooth** display filter (a boxcar average, like the hi-res mode on bench
+  scopes) that reveals the shape of PWM-encoded signals without any extra parts.
 - **Demo mode**: the UI runs without any hardware against a simulated Pico
   that speaks the same protocol.
 
@@ -74,7 +81,8 @@ render.*
 | Capture depth | Up to 16384 points per channel (limited by 64 KB of capture RAM, shared between channels) |
 | Frame rate | About 60 to 185 frames/s at normal timebases, about 5 to 12 frames/s with an 8192-point spectrum. Measured over Wi-Fi with one client. |
 | UI size | About 24 KB (gzip) in the board's flash |
-| Free RAM at runtime | About 100 KB |
+| Free RAM at runtime | About 95 KB |
+| Generator | Digital: 0.02 Hz to 12.5 MHz, 8 ns steps. Analog (PWM-encoded): 0.05 Hz to 100 kHz, about 8 bits, 0 to 3.3 V. One output, GP15. |
 
 ### Measured accuracy
 
@@ -90,6 +98,20 @@ GP26 with a jumper wire, read back through the UI:
 | 200 kHz | 199.99 kHz | -0.01 % |
 | 240 kHz | 239.92 kHz | -0.03 % |
 | 300 kHz | 200 kHz | wrong, aliased |
+
+Generator output, measured with the same loopback (digital outputs read at
+500 kS/s; analog outputs viewed with Smooth set to 64):
+
+| Setting | Measured |
+|---|---|
+| Square 1 kHz, 50 kHz | 1.000 kHz and 50.000 kHz, duty 50.0 % |
+| Pulse 10 µs in 1 ms | duty 1.00 %; a 2 µs pulse (one ADC sample) read 0.20 % |
+| Pulse 250 µs in 1 ms, inverted | duty 25.0 %, and 75.0 % when inverted |
+| Burst of 5 pulses at 100 Hz | exactly 5 pulses, spaced exactly 10.0 ms (4 of 4 captures) |
+| Sine 1 kHz, 2.0 Vpp, 1.65 V offset | 2.03 Vpp, 1.649 V mean, 998 Hz |
+| Triangle 1 kHz, 2.0 Vpp | 1.87 Vpp, 1.651 V mean (the smoothing rounds the peaks) |
+| Ramps 1 kHz, 1.0 Vpp, 1.0 V offset | 0.93 and 0.94 Vpp, 1.00 V mean |
+| DC 0.50 V, 2.50 V | 0.488 V and 2.494 V, with 0.1 to 0.3 V of peak-to-peak ripple left without an RC filter |
 
 Read these numbers with care:
 
@@ -118,7 +140,7 @@ specific.
 | CH1 | 31 | GP26 (ADC0) | |
 | CH2 | 32 | GP27 (ADC1) | |
 | CH3 | 34 | GP28 (ADC2) | |
-| Test signal out | 20 | GP15 | 3.3 V square wave |
+| Generator out | 20 | GP15 | Digital 3.3 V, or PWM-encoded analog |
 | Ground | 33 (AGND) or any GND | | Use AGND for the cleanest readings |
 
 ![Pico W pinout showing pin 20 and pin 31](docs/pinout.svg)
@@ -176,7 +198,7 @@ You should see something like:
 
 ```
 wifi station 192.168.0.103
-Hadosoku 0.2 ready: http://192.168.0.103/  (station)  free=104464
+Hadosoku 0.3 ready: http://192.168.0.103/  (station)  free=104464
 ```
 
 ### 5. Open it
@@ -258,12 +280,64 @@ this in two ways:
    same at both rates; an aliased one does not. When they disagree, the UI
    shows the amber *ALIAS* chip, a banner, and the most likely true frequency.
    The captures used for the check are never displayed, so the screen does not
-   flicker.
+   flicker. If the first attempt is too noisy to judge (a PWM carrier can look
+   like noise at an unlucky second rate), it tries two other rates. When Smooth
+   is on, the check looks through the same filter as the display.
 
 The automatic check is skipped in roll mode and below 10 kS/s, where a check
 would take too long. The *Check now* button in the Horizontal panel runs it on
 demand at any rate except in roll mode. It can only judge periodic signals. A signal sitting at an
 exact multiple of the sample rate looks like DC and cannot be recognised.
+
+## Signal generator
+
+The **Signal generator** panel drives GP15. Choose a waveform, then set its
+parameters; the board reports back what it actually produced (for example the
+exact frequency and the number of PWM levels).
+
+| Waveform | Parameters | How it is made |
+|---|---|---|
+| Square | frequency 0.02 Hz to 12.5 MHz, duty 0 to 100 %, invert | PIO state machine, exact cycle counts |
+| Pulse | rate, width (24 ns and up), count (0 = continuous), invert, **Fire** button | PIO state machine; a finite count makes a burst that **Fire** repeats |
+| Sine, Triangle (adjustable symmetry), Ramp up, Ramp down | frequency 0.05 Hz to 100 kHz, amplitude (Vpp), offset | PWM duty values streamed by DMA |
+| Noise | update rate 10 Hz to 500 kHz, amplitude, offset | random PWM duty values, 1024-entry table |
+| DC | level 0 to 3.3 V | fixed PWM duty |
+
+![The generator panel producing a sine wave, viewed with Smooth set to 64](docs/ui-generator.jpg)
+
+### Digital outputs (square, pulse)
+
+These are real logic signals. The PIO program toggles the pin with a
+deterministic number of clock cycles, so timing is exact to 8 ns and has no
+jitter from the CPU or Wi-Fi. Square and continuous pulse trains run forever on
+their own. A pulse burst (count above 0) fires once as soon as you enable it or
+change a setting, runs the requested number of pulses, then idles; press **Fire**
+to repeat it. Timing above about 240 kHz is exact by construction, but the
+board's own 500 kS/s ADC cannot be used to check it.
+
+### Analog outputs (sine, triangle, ramps, noise, DC)
+
+**The RP2040 has no DAC.** These waveforms are PWM-encoded: the average voltage
+of the pin follows the shape you asked for, but the pin itself switches between
+0 V and 3.3 V at a carrier of about 309 kHz (about 8 bits of level resolution).
+For a smooth analog signal, add an RC low-pass filter between GP15 and what you
+are driving. As a starting point, a resistor R and capacitor C to ground give a
+cutoff of 1 / (2 pi R C); for example 1.6 kohm and 100 nF is about 1 kHz, and
+160 ohm and 100 nF is about 10 kHz. Keep the cutoff well below the carrier but
+above your waveform frequency. This filter is a suggestion and has not been
+built or tested as part of this project.
+
+With only a jumper wire (GP15 to GP26) the scope sees the raw PWM. The **Smooth**
+setting in the Display panel averages it on screen and shows the intended shape;
+**64** is a good value for waveforms up to a few kHz. The aliasing check looks
+through the same filter.
+
+How the table is played matters for how clean this looks: the DMA timer updates
+the PWM duty at a rate set by the waveform frequency, while the PWM carrier
+itself stays near 309 kHz (about 0.618 times 500 kS/s), so that the ADC samples
+the carrier at well-spread phases and the average converges quickly. Below about
+2 Hz the DMA timer cannot go slow enough and the carrier follows the table rate
+instead.
 
 ## How it works
 
@@ -310,10 +384,13 @@ Browser to board, JSON text frames:
 |---|---|
 | `cfg` | `mask` (bit per ADC input), `rate` (per channel, S/s), `len` (samples per channel), `pre` (samples before the trigger), `src`, `level` and `hyst` (raw 12-bit), `edge` (`r` or `f`), `mode` (`auto`, `normal`, `free`, `single`), `run`, `roll` |
 | `run` | `on` |
-| `gen` | `on`, `freq` (8 to 2 000 000 Hz), `duty` (percent) |
+| `gen` | `on`, `wave` (`square`, `pulse`, `sine`, `triangle`, `ramp_up`, `ramp_down`, `noise`, `dc`), `freq`, `duty`, `amp`, `off`, `sym`, `width` (seconds), `count`, `invert` |
+| `fire` | none; emits one burst in pulse mode with a finite count |
 
 Board to browser, JSON text frames: `hello` (firmware version, address, current
-configuration) once on connect, and `stat` (state, frames per second, free
+configuration and generator state) once on connect, `genstate` (the generator
+state after clamping, plus the values actually achieved) after every `gen` or
+`fire`, `bye` when another browser takes over the connection, and `stat` (state, frames per second, free
 memory, Wi-Fi signal, uptime) about once a second.
 
 Board to browser, binary frames: a 16-byte little-endian header
@@ -341,6 +418,7 @@ firmware/        MicroPython code that runs on the board
   main.py          start-up: Wi-Fi, then the server
   net.py           join the network, or fall back to an access point
   capture.py       ADC + DMA capture, trigger search, roll-mode ring buffer
+  gen.py           signal generator on GP15 (PIO digital, DMA + PWM analog)
   server.py        HTTP + WebSocket server and the acquisition loop
 www/index.html   the entire user interface (one file, no dependencies)
 tools/
@@ -378,7 +456,9 @@ was checked with throwaway scripts run through `pico.py exec`.
 | Symptom | What to try |
 |---|---|
 | Page never loads | Check the IP printed by `pico.py reset`. The board must be on the same network as the computer, and 2.4 GHz only. |
-| "Connection lost, retrying" | Another browser tab may have taken the connection. The board serves one client; the newest connection wins. |
+| "Connection lost, retrying" | The Wi-Fi link dropped; the page reconnects by itself. |
+| "Another browser took over this scope" | The board serves one client and the newest connection wins. The older page stops retrying so the two do not fight; click the connection chip to take it back. |
+| Sine or triangle looks like a noisy square wave | That is the PWM carrier. Set Display > Smooth to 32 or 64, or add an RC filter. |
 | Board made its own `Hadosoku` network | It could not join your Wi-Fi. Re-run `tools/setup_wifi.py` and deploy again. |
 | Flat line at about 50 mV | The input is floating or the jumper is not connected. Check pin 20 to pin 31. |
 | Wrong frequency at high speeds | Probably aliasing. Look for the ALIAS chip and lower the signal frequency. |
@@ -391,6 +471,15 @@ was checked with throwaway scripts run through `pico.py exec`.
   and drive the test-signal pin. Do not expose the board to the internet. The
   Wi-Fi password is stored in plain text in the board's flash.
 - **One client at a time.**
+- **Generator.** One output pin. Analog shapes are PWM-encoded with about 8 bits
+  of resolution and are only useful to a few tens of kHz (at 100 kHz there are
+  only about 3 samples per cycle). Digital timing is exact, but a very short
+  one-off burst can fall between the scope's capture blocks; see below.
+- **Single-shot capture is block based,** so the scope is briefly blind between
+  blocks. A one-off event much shorter than a capture block can be missed.
+  Bursts that fit inside the capture window (for example five pulses at 100 Hz
+  with 5 ms/div) were captured 4 out of 4 times, while very short bursts of a
+  few milliseconds were caught only intermittently in testing.
 - **Single-ended, DC-coupled, 0 to 3.3 V inputs only,** with no input
   protection on the board.
 - **ADC quality.** The RP2040 ADC is 12-bit with known non-linearity, and its
