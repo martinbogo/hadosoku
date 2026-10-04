@@ -1,0 +1,5 @@
+secrets.py
+__pycache__/
+*.gz
+.claude/
+.DS_Store

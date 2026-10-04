@@ -1,0 +1,1513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hadosoku</title>
+<style>
+:root{
+  --bg:#0a0d13; --panel:#121722; --panel2:#182030; --raise:#1e283a; --line:#26314a;
+  --text:#d9e0ee; --muted:#8592ab; --accent:#4f9cff; --accent-ink:#06101f;
+  --ok:#3ddc84; --warn:#ffb020; --bad:#ff5d6c; --wait:#6ea8ff;
+  --ch1:#ffd23f; --ch2:#31d7f0; --ch3:#f06ad8;
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.35);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#eef1f6; --panel:#ffffff; --panel2:#f3f5fa; --raise:#e6ebf4; --line:#d3dae8;
+    --text:#1b2333; --muted:#5d6a82; --accent:#1f6feb; --accent-ink:#ffffff;
+    --shadow:0 1px 0 rgba(255,255,255,.6) inset,0 6px 18px rgba(30,45,80,.10);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#eef1f6; --panel:#ffffff; --panel2:#f3f5fa; --raise:#e6ebf4; --line:#d3dae8;
+  --text:#1b2333; --muted:#5d6a82; --accent:#1f6feb; --accent-ink:#ffffff;
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset,0 6px 18px rgba(30,45,80,.10);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;gap:14px;padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:.2px;font-size:15px}
+.brand small{font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.4px;text-transform:uppercase}
+.runctl{display:flex;gap:6px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);font-weight:600;transition:background .12s,border-color .12s,transform .05s}
+.btn:hover{background:var(--raise)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.btn.run.running{background:rgba(61,220,132,.14);border-color:rgba(61,220,132,.55);color:var(--ok)}
+.btn.run.stopped{background:rgba(255,93,108,.14);border-color:rgba(255,93,108,.55);color:var(--bad)}
+.btn.armed{background:rgba(255,176,32,.16);border-color:rgba(255,176,32,.6);color:var(--warn)}
+.btn.icon{padding:7px 9px}
+.trigstat{display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font:600 11px var(--mono);letter-spacing:.8px;min-width:104px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--text)}
+.chip:hover{background:var(--raise)}
+
+/* ---------- layout ---------- */
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 336px}
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0;padding:10px 10px 6px 12px;gap:9px}
+.infobar{display:flex;gap:8px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border-radius:7px;background:var(--panel);border:1px solid var(--line);font:12px var(--mono);white-space:nowrap}
+.tag b{font-weight:700;color:#0b0f17;padding:1px 6px;border-radius:4px;font-family:-apple-system,"Segoe UI",sans-serif;font-size:11px;letter-spacing:.3px}
+.tag.off{opacity:.45}
+.tag.act{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.screens{flex:1;min-height:200px;display:flex;flex-direction:column;background:#05070b;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;box-shadow:var(--shadow)}
+.screens canvas{display:block;width:100%}
+#scope{flex:1;min-height:0;touch-action:none}
+#fft{height:36%;display:none;border-top:1px solid #1a2436}
+#alias{left:50%;transform:translateX(-50%);top:32px;max-width:78%;text-align:center;background:rgba(60,40,6,.92);border:1px solid #ffb020;color:#ffd58a;border-radius:9px;padding:7px 14px;font:600 12px -apple-system,"Segoe UI",sans-serif;display:none;line-height:1.45}
+.overlay{position:absolute;pointer-events:none;font:11px var(--mono);color:#cdd6e8}
+#curbox{left:28px;top:30px;background:rgba(10,14,22,.82);border:1px solid #2a3750;border-radius:8px;padding:7px 10px;display:none;line-height:1.55;min-width:150px}
+#curbox div{display:flex;justify-content:space-between;gap:18px}
+#curbox .k{color:#8a98b5}
+#msg{left:0;right:0;top:46%;text-align:center;font:600 13px -apple-system,"Segoe UI",sans-serif;color:#7d8aa5;letter-spacing:.3px}
+#banner{top:0;left:0;right:0;text-align:center;padding:5px;background:rgba(255,93,108,.18);color:#ff9aa5;font:600 12px -apple-system,"Segoe UI",sans-serif;display:none}
+
+.meas{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px 9px;min-width:0}
+.mcard h4{margin:0 0 5px;display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.mcard h4 b{color:#0b0f17;padding:1px 7px;border-radius:4px;letter-spacing:.3px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
+.mgrid div{display:flex;flex-direction:column;min-width:0}
+.mgrid span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mgrid output{font:600 13px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- side panel ---------- */
+.side{overflow:auto;border-left:1px solid var(--line);background:var(--panel)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);user-select:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(45deg)}
+summary:hover{color:var(--text)}
+.sec{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:8px;min-width:0}
+.row>.lbl{width:74px;flex:none;color:var(--muted);font-size:12px}
+.row>.grow{flex:1;min-width:0}
+.val{font:600 12px var(--mono);min-width:92px;text-align:center;white-space:nowrap}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);font-weight:700;line-height:1;display:inline-grid;place-items:center}
+.step:hover{background:var(--raise)}
+.seg{display:flex;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:2px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;padding:5px 8px;border-radius:6px;color:var(--muted);font-weight:600;white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+select,input[type=text]{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 8px;min-width:0}
+select{cursor:pointer}
+input[type=range]{-webkit-appearance:none;appearance:none;height:22px;background:transparent;flex:1;min-width:0;--c:var(--accent)}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--line)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:var(--c);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--c)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--panel)}
+.chrow{border:1px solid var(--line);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:8px;background:var(--panel2);cursor:pointer}
+.chrow.active{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+.chhead{display:flex;align-items:center;gap:8px}
+.chtog{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:6px;padding:3px 10px;font-weight:700;background:var(--c);color:#0b0f17;letter-spacing:.3px}
+.chtog[aria-pressed="false"]{background:transparent;color:var(--muted);box-shadow:0 0 0 1px var(--line) inset;text-decoration:line-through}
+.pin{color:var(--muted);font:11px var(--mono)}
+.note{color:var(--muted);font-size:11.5px;line-height:1.45}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;background:var(--raise);font:600 11px var(--mono);cursor:pointer;border:1px solid var(--line)}
+.pill:hover{border-color:var(--accent)}
+.sw{position:relative;width:38px;height:22px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s}
+.sw i::after{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i::after{transform:translateX(16px)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+
+.status{display:flex;gap:16px;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:var(--panel);font:11px var(--mono);color:var(--muted);flex-wrap:wrap}
+.status b{color:var(--text);font-weight:600}
+#toast{position:fixed;left:50%;bottom:44px;transform:translate(-50%,20px);background:var(--raise);border:1px solid var(--line);color:var(--text);padding:9px 16px;border-radius:10px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:30;font-weight:600}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px 22px;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h3{margin:0 0 12px}
+dialog table{border-collapse:collapse;width:100%}
+dialog td{padding:4px 0;vertical-align:top}
+dialog td:first-child{white-space:nowrap;padding-right:18px}
+kbd{font:600 11px var(--mono);background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+.dlgrow{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
+
+@media (max-width:980px){
+  body{overflow:auto}
+  .layout{display:block}
+  .screens{height:62vh;min-height:320px}
+  .side{border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="3" width="24" height="20" rx="5" fill="#0b1018" stroke="#2a3750"/><path d="M3 15c3 0 3-8 6-8s3 12 6 12 3-8 8-8" fill="none" stroke="#3ddc84" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Hadosoku <small>波動測定</small></span>
+  </div>
+  <div class="runctl">
+    <button class="btn run running" id="btnRun" title="Run / Stop (Space)"><svg viewBox="0 0 14 14" id="icoRun"><rect x="2" y="2" width="4" height="10"/><rect x="8" y="2" width="4" height="10"/></svg><span id="txtRun">Run</span></button>
+    <button class="btn" id="btnSingle" title="Single capture (S)"><svg viewBox="0 0 14 14"><path d="M2 12V6h3V2h4v6h3v4z"/></svg>Single</button>
+    <button class="btn" id="btnAuto" title="Autoset (A)"><svg viewBox="0 0 14 14"><path d="M7 1l1.6 3.6L12 5.2 9.4 7.8 10 12 7 10 4 12l.6-4.2L2 5.2l3.4-.6z"/></svg>Autoset</button>
+  </div>
+  <div class="trigstat" id="trigstat" title="Trigger state"><span class="dot" id="dotTrig"></span><span id="txtTrig">STOP</span></div>
+  <div class="trigstat" id="aliasChip" style="display:none;color:var(--warn);min-width:0" title="Aliasing detected"><span class="dot" style="background:var(--warn)"></span><span>ALIAS</span></div>
+  <div class="spacer"></div>
+  <button class="chip" id="btnConn" title="Connection"><span class="dot" id="dotConn"></span><span id="txtConn">Offline</span></button>
+  <button class="btn icon" id="btnPng" title="Save screenshot (P)" aria-label="Save screenshot"><svg viewBox="0 0 14 14"><path d="M1 3h3l1-1.5h4L10 3h3v9H1zm6 7.2a2.7 2.7 0 100-5.4 2.7 2.7 0 000 5.4z"/></svg></button>
+  <button class="btn icon" id="btnCsv" title="Export CSV" aria-label="Export CSV"><svg viewBox="0 0 14 14"><path d="M7 1v7.2L4.4 5.6 3.3 6.7 7 10.4l3.7-3.7-1.1-1.1L7 8.2V1zM2 11h10v2H2z"/></svg></button>
+  <button class="btn icon" id="btnTheme" title="Toggle theme" aria-label="Toggle theme"><svg viewBox="0 0 14 14"><path d="M7 1a6 6 0 100 12A6 6 0 007 1zm0 2a4 4 0 010 8z"/></svg></button>
+  <button class="btn icon" id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Help"><svg viewBox="0 0 14 14"><path d="M7 0a7 7 0 100 14A7 7 0 007 0zm.7 11H6.3V9.6h1.4zm1.2-4.2c-.6.6-1.2.8-1.2 1.7H6.3c0-1.4.8-1.8 1.3-2.3.4-.4.2-1.1-.6-1.1-.6 0-1 .4-1 1H4.7c0-1.4 1-2.3 2.4-2.3 2 0 2.8 1.9 1.8 3z"/></svg></button>
+</header>
+
+<div class="layout">
+  <main class="stage">
+    <div class="infobar" id="infobar"></div>
+    <div class="screens" id="screens">
+      <canvas id="scope"></canvas>
+      <canvas id="fft"></canvas>
+      <div class="overlay" id="curbox"></div>
+      <div class="overlay" id="msg"></div>
+      <div class="overlay" id="alias" role="alert"></div>
+      <div class="overlay" id="banner"></div>
+    </div>
+    <div class="meas" id="meas"></div>
+  </main>
+
+  <aside class="side" id="side">
+    <details open><summary>Horizontal</summary><div class="sec">
+      <div class="row"><span class="lbl">Time/div</span><button class="step" id="tdDn" aria-label="Faster">-</button><output class="val grow" id="tdVal"></output><button class="step" id="tdUp" aria-label="Slower">+</button></div>
+      <div class="row"><span class="lbl">Position</span><input type="range" id="tPos" min="0.05" max="0.95" step="0.01" aria-label="Trigger position"><output class="val" id="tPosVal" style="min-width:48px"></output></div>
+      <div class="row"><span class="lbl">Sampling</span><output class="val mono grow" id="acqInfo" style="text-align:left"></output></div>
+      <div class="row"><span class="lbl">Alias</span><button class="btn" id="btnAlias" style="padding:4px 10px">Check now</button><output class="val grow" id="aliasOut" style="text-align:left;min-width:0;white-space:normal">auto</output></div>
+      <div class="row"><span class="lbl">Average</span><div class="seg" id="segAvg"></div></div>
+    </div></details>
+
+    <details open><summary>Channels</summary><div class="sec" id="chs"></div></details>
+
+    <details open><summary>Trigger</summary><div class="sec">
+      <div class="row"><span class="lbl">Source</span><div class="seg" id="segSrc"></div></div>
+      <div class="row"><span class="lbl">Edge</span><div class="seg" id="segEdge"><button data-v="r">Rising</button><button data-v="f">Falling</button></div></div>
+      <div class="row"><span class="lbl">Mode</span><div class="seg" id="segMode"><button data-v="auto">Auto</button><button data-v="normal">Normal</button><button data-v="free">Free</button><button data-v="roll">Roll</button></div></div>
+      <div class="row"><span class="lbl">Level</span><input type="range" id="tLvl" min="0" max="3.3" step="0.01" aria-label="Trigger level"><output class="val" id="tLvlVal" style="min-width:70px"></output></div>
+      <div class="row"><span class="lbl">Hysteresis</span><div class="seg" id="segHyst"><button data-v="0.01">Low</button><button data-v="0.03">Normal</button><button data-v="0.1">High</button></div></div>
+    </div></details>
+
+    <details><summary>Display</summary><div class="sec">
+      <div class="row"><span class="lbl">Trace</span><div class="seg" id="segInterp"><button data-v="auto">Auto</button><button data-v="linear">Linear</button><button data-v="sinc">Sinc</button><button data-v="dots">Dots</button></div></div>
+      <div class="row"><span class="lbl">Persist</span><div class="seg" id="segPersist"><button data-v="0">Off</button><button data-v="1">Short</button><button data-v="2">Med</button><button data-v="3">Long</button><button data-v="4">Inf</button></div></div>
+      <div class="row"><span class="lbl">Grid</span><div class="seg" id="segGrid"><button data-v="lines">Lines</button><button data-v="dots">Dots</button><button data-v="off">Off</button></div></div>
+      <div class="row"><span class="lbl">Cursors</span><div class="seg" id="segCur"><button data-v="off">Off</button><button data-v="time">Time</button><button data-v="volt">Volt</button><button data-v="both">Both</button></div></div>
+    </div></details>
+
+    <details><summary>Spectrum (FFT)</summary><div class="sec">
+      <div class="row"><span class="lbl">Show</span><label class="sw"><input type="checkbox" id="fftOn" aria-label="Show spectrum"><i></i></label></div>
+      <div class="row"><span class="lbl">Points</span><div class="seg" id="segFftN"><button data-v="1024">1k</button><button data-v="2048">2k</button><button data-v="4096">4k</button><button data-v="8192">8k</button></div></div>
+      <div class="row"><span class="lbl">Window</span><div class="seg" id="segFftW"><button data-v="hann">Hann</button><button data-v="blackman">Blackman</button><button data-v="rect">Rect</button></div></div>
+      <div class="row"><span class="lbl">Freq axis</span><div class="seg" id="segFftX"><button data-v="lin">Linear</button><button data-v="log">Log</button></div></div>
+      <div class="note">Levels are dBV, peak. The span depends on the sample rate chosen by the timebase.</div>
+    </div></details>
+
+    <details open><summary>Test signal (GP15)</summary><div class="sec">
+      <div class="row"><span class="lbl">Output</span><label class="sw"><input type="checkbox" id="genOn" aria-label="Enable test signal"><i></i></label><span class="note" id="genNote"></span></div>
+      <div class="row"><span class="lbl">Frequency</span><input type="text" id="genFreq" class="grow mono" aria-label="Test signal frequency" inputmode="decimal"></div>
+      <div class="row"><span class="lbl"></span><span class="pill" data-f="100">100 Hz</span><span class="pill" data-f="1000">1 kHz</span><span class="pill" data-f="10000">10 kHz</span><span class="pill" data-f="50000">50 kHz</span></div>
+      <div class="row"><span class="lbl">Duty</span><input type="range" id="genDuty" min="1" max="99" step="1" aria-label="Duty cycle"><output class="val" id="genDutyVal" style="min-width:48px"></output></div>
+      <div class="note">3.3 V square wave. Jumper GP15 (pin 20) to GP26 (pin 31) to see it on CH1.</div>
+    </div></details>
+
+    <details><summary>Calibration</summary><div class="sec">
+      <div class="row"><span class="lbl">ADC ref</span><input type="text" id="vref" class="grow mono" aria-label="ADC reference volts" inputmode="decimal"><span class="note">V</span></div>
+      <div class="note">Measure the 3V3 pin (pin 36) with a multimeter and enter it here to scale all readings. Input range is 0 to 3.3 V only; never exceed it.</div>
+    </div></details>
+  </aside>
+</div>
+
+<footer class="status" id="status"></footer>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlgHelp">
+  <h3>Keyboard shortcuts</h3>
+  <table>
+    <tr><td><kbd>Space</kbd></td><td>Run / stop</td></tr>
+    <tr><td><kbd>S</kbd></td><td>Single capture</td></tr>
+    <tr><td><kbd>A</kbd></td><td>Autoset</td></tr>
+    <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>Time per division (also mouse wheel)</td></tr>
+    <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td><td>Volts per division of the active channel (also Shift + wheel)</td></tr>
+    <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>Select channel; hold Shift to show / hide it</td></tr>
+    <tr><td><kbd>T</kbd></td><td>Cycle trigger mode</td></tr>
+    <tr><td><kbd>E</kbd></td><td>Toggle trigger edge</td></tr>
+    <tr><td><kbd>C</kbd></td><td>Cycle cursors</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Show / hide spectrum</td></tr>
+    <tr><td><kbd>P</kbd></td><td>Save screenshot</td></tr>
+  </table>
+  <p class="note" style="margin-top:12px">Drag the arrows at the screen edges: left is each channel's 0 V level, right is the trigger level, top is the trigger position. While stopped you can still zoom the time axis and place cursors on the captured data.</p>
+  <div class="dlgrow"><button class="btn" id="helpClose">Close</button></div>
+</dialog>
+
+<dialog id="dlgConn">
+  <h3>Connect to a Pico</h3>
+  <p class="note">Enter the IP address shown in the Pico's serial log, or leave empty to use demo signals.</p>
+  <div class="row"><input type="text" id="connHost" class="grow mono" placeholder="192.168.1.50" aria-label="Pico address"></div>
+  <div class="dlgrow"><button class="btn" id="connDemo">Demo</button><button class="btn run running" id="connGo">Connect</button></div>
+</dialog>
+
+<script>
+'use strict';
+(() => {
+/* ================================================================== */
+/* constants + state                                                  */
+/* ================================================================== */
+const TDIV = [2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1, 2, 5, 10];
+const VDIV = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10];
+const RATES = [1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5];
+const COL = ['#ffd23f', '#31d7f0', '#f06ad8'];
+const PIN = ['GP26', 'GP27', 'GP28'];
+const NCH = 3, HDIV = 10, VDIV_N = 8, ADC_MAX = 4095;
+const MAX_RATE = 500000;
+
+const S = {
+  run: true, tdiv: 2e-4, vref: 3.3, active: 0,
+  ch: [0, 1, 2].map(i => ({ en: i === 0, vdiv: 0.5, pos: -3, probe: 1 })),
+  trig: { src: 0, level: 1.65, edge: 'r', mode: 'auto', hyst: 0.03, pre: 0.5 },
+  avg: 1, interp: 'auto', persist: 0, grid: 'lines', cursors: 'off',
+  fft: { on: false, n: 2048, win: 'hann', x: 'lin' },
+  gen: { on: true, freq: 1000, duty: 50 },
+  cur: { x1: 3, x2: 7, y1: 2, y2: -2 },
+  state: 'stop', frame: null, fps: 0, heap: 0, rssi: null, up: 0,
+  epoch: 0, single: false, prevMode: 'auto', info: null,
+};
+try { Object.assign(S, JSON.parse(localStorage.getItem('hadosoku.prefs') || '{}')); } catch (e) { /* ignore */ }
+function savePrefs() {
+  try {
+    localStorage.setItem('hadosoku.prefs', JSON.stringify({
+      interp: S.interp, persist: S.persist, grid: S.grid, avg: S.avg, vref: S.vref,
+      fft: S.fft, cursors: S.cursors,
+    }));
+  } catch (e) { /* ignore */ }
+}
+
+/* ================================================================== */
+/* helpers                                                            */
+/* ================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const idxNear = (arr, v) => arr.reduce((b, x, i) => Math.abs(Math.log(x / v)) < Math.abs(Math.log(arr[b] / v)) ? i : b, 0);
+
+function si(v, unit, sig = 3) {
+  if (!isFinite(v)) return '-';
+  if (v === 0) return '0 ' + unit;
+  const P = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n']];
+  const a = Math.abs(v);
+  for (const [m, s] of P) {
+    if (a >= m * 0.9995) {
+      const x = v / m;
+      const d = clamp(sig - 1 - Math.floor(Math.log10(Math.abs(x))), 0, 6);
+      return x.toFixed(d) + ' ' + s + unit;
+    }
+  }
+  return v.toExponential(1) + ' ' + unit;
+}
+function parseSI(s) {
+  const m = /^\s*([\d.]+(?:e[+-]?\d+)?)\s*([kKmMuUµ]?)\s*(?:hz|v)?\s*$/i.exec(s);
+  if (!m) return NaN;
+  const mult = { '': 1, k: 1e3, K: 1e3, m: 1e6, M: 1e6 }[m[2]];
+  return parseFloat(m[1]) * (mult || 1);
+}
+let toastTimer;
+function toast(t) {
+  const el = $('#toast');
+  el.textContent = t; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+let dirty = true;
+const redraw = () => { dirty = true; };
+
+/* ================================================================== */
+/* acquisition planning (shared by device and simulator)              */
+/* ================================================================== */
+function enabledChans() {
+  const e = S.ch.map((c, i) => c.en ? i : -1).filter(i => i >= 0);
+  if (!e.length) { S.ch[0].en = true; e.push(0); }
+  return e;
+}
+function isRoll() {
+  return S.tdiv >= 0.2 - 1e-9 || (S.trig.mode === 'roll' && S.tdiv >= 0.01 - 1e-9);
+}
+function plan() {
+  const en = enabledChans();
+  const nch = en.length;
+  const rmax = MAX_RATE / nch;
+  const cands = RATES.filter(r => r <= rmax + 1);
+  let rate = cands.find(r => HDIV * S.tdiv * r >= 1000) || cands[cands.length - 1];
+  const screenN = HDIV * S.tdiv * rate;
+  const roll = isRoll();
+  const K = roll ? Math.max(1, Math.round(screenN / 1000)) : 1;
+  let len = Math.max(64, Math.round(screenN));
+  if (S.fft.on) len = Math.max(len, S.fft.n);
+  len = Math.min(len, Math.floor(16384 / nch));
+  const mask = en.reduce((m, i) => m | 1 << i, 0);
+  const src = en.includes(S.trig.src) ? S.trig.src : en[0];
+  return { en, nch, mask, rate, len, screenN, src, roll, K };
+}
+function devCfg() {
+  const p = plan();
+  const raw = v => Math.round(clamp(v / S.vref, 0, 1) * ADC_MAX);
+  return {
+    t: 'cfg', mask: p.mask, rate: p.rate, len: p.len,
+    pre: clamp(Math.round(S.trig.pre * p.screenN), 0, p.len - 1),
+    src: p.src, level: raw(S.trig.level), hyst: Math.max(2, raw(S.trig.hyst)),
+    edge: S.trig.edge, mode: S.trig.mode === 'roll' ? 'auto' : S.trig.mode, run: S.run, roll: p.roll,
+  };
+}
+let pushTimer = 0;
+function pushCfg(now) {
+  S.epoch++; resetAverage(); clearPersist(); redraw();
+  clearTimeout(pushTimer);
+  const go = () => Dev.send(devCfg());
+  if (now) go(); else pushTimer = setTimeout(go, 40);
+  updateInfo(); scheduleProbe();
+}
+function pushGen() {
+  Dev.send({ t: 'gen', on: S.gen.on, freq: S.gen.freq, duty: S.gen.duty });
+  Sim.gen = { ...S.gen };
+  scheduleProbe(2000);
+}
+
+/* ================================================================== */
+/* frame decode, averaging                                            */
+/* ================================================================== */
+let avgState = null, frameWaiters = [];
+function resetAverage() { avgState = null; }
+
+function decodeFrame(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint8(0) !== 0x53) return null;
+  const flags = dv.getUint8(1), mask = dv.getUint8(4), nch = dv.getUint8(5);
+  const n = dv.getUint16(6, true), rate = dv.getUint32(8, true), pre = dv.getUint16(12, true);
+  const raw = new Uint16Array(buf, 16, n * nch);
+  const chans = [0, 1, 2, 3, 4].filter(c => mask >> c & 1);
+  const k = S.vref / ADC_MAX;
+  const data = {};
+  chans.forEach((c, j) => {
+    const a = new Float32Array(n);
+    for (let i = 0; i < n; i++) a[i] = raw[i * nch + j] * k;
+    data[c] = a;
+  });
+  return { n, rate, nch, mask, chans, data, trig: !!(flags & 1), pre: pre === 0xFFFF ? -1 : pre, epoch: S.epoch, t: performance.now() };
+}
+function acceptRoll(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint8(0) !== 0x53) return;
+  const mask = dv.getUint8(4), nch = dv.getUint8(5), n = dv.getUint16(6, true), rate = dv.getUint32(8, true);
+  const K = plan().K, key = mask + ':' + rate + ':' + K;
+  let R = S.roll;
+  if (!R || R.key !== key) {
+    const chans = [0, 1, 2, 3, 4].filter(c => mask >> c & 1), cap = 4096;
+    R = S.roll = { key, chans, K, rate, cap, n: 0, cnt: 0, h: {}, sum: {} };
+    chans.forEach(c => { R.h[c] = new Float32Array(cap); R.sum[c] = 0; });
+  }
+  const raw = new Uint16Array(buf, 16, n * nch), k = S.vref / ADC_MAX;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < R.chans.length; j++) R.sum[R.chans[j]] += raw[i * nch + j] * k;
+    if (++R.cnt === R.K) {
+      if (R.n === R.cap) { const sh = R.cap >> 2; R.chans.forEach(c => R.h[c].copyWithin(0, sh, R.cap)); R.n -= sh; }
+      R.chans.forEach(c => { R.h[c][R.n] = R.sum[c] / R.K; R.sum[c] = 0; });
+      R.n++; R.cnt = 0;
+    }
+  }
+  const data = {};
+  R.chans.forEach(c => { data[c] = R.h[c].subarray(0, R.n); });
+  S.frame = { roll: true, rate: R.rate / R.K, n: R.n, nch: R.chans.length, mask, chans: R.chans, data, trig: false, pre: -1, epoch: S.epoch, t: performance.now() };
+  frameWaiters.splice(0).forEach(w => w(S.frame));
+  redraw(); updateMeasurements();
+}
+function acceptFrame(f) {
+  if (!f) return;
+  if (S.probing) { frameWaiters.splice(0).forEach(w => w(f)); return; }
+  S.roll = null;
+  if (S.avg > 1 && f.trig) {
+    const sameShape = avgState && avgState.n === f.n && avgState.rate === f.rate && avgState.mask === f.mask && avgState.epoch === S.epoch;
+    if (sameShape) {
+      const w = 1 / Math.min(avgState.count + 1, S.avg);
+      for (const c of f.chans) {
+        const a = avgState.data[c], b = f.data[c];
+        for (let i = 0; i < f.n; i++) b[i] = a[i] + (b[i] - a[i]) * w;
+      }
+      f.count = avgState.count = Math.min(avgState.count + 1, S.avg);
+    } else {
+      f.count = 1;
+      avgState = { n: f.n, rate: f.rate, mask: f.mask, epoch: S.epoch, data: f.data, count: 1 };
+    }
+    avgState.data = f.data;
+  }
+  S.frame = f;
+  stampPersist(f);
+  frameWaiters.splice(0).forEach(w => w(f));
+  redraw();
+  updateMeasurements();
+  if (S.fft.on) redraw();
+}
+const nextFrame = (ms = 4000) => new Promise((res, rej) => {
+  const t = setTimeout(() => rej(new Error('timeout')), ms);
+  frameWaiters.push(f => { clearTimeout(t); res(f); });
+});
+
+/* ================================================================== */
+/* device link (WebSocket) and simulator                              */
+/* ================================================================== */
+const Dev = {
+  mode: 'offline', ws: null, host: null, retry: 0, gotHello: false,
+  send(obj) {
+    if (this.mode === 'live' && this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(obj));
+    else if (this.mode === 'demo') Sim.apply(obj);
+  },
+  connect(host) {
+    this.stop();
+    this.host = host; this.mode = 'connecting'; this.gotHello = false;
+    setConn();
+    let ws;
+    try { ws = new WebSocket('ws://' + host + '/ws'); } catch (e) { this.lost(); return; }
+    ws.binaryType = 'arraybuffer';
+    this.ws = ws;
+    ws.onopen = () => { Sim.stop(); this.mode = 'live'; this.retry = 0; setConn(); };
+    ws.onmessage = ev => {
+      if (typeof ev.data === 'string') return onDeviceMsg(JSON.parse(ev.data));
+      if (new Uint8Array(ev.data, 1, 1)[0] & 2) acceptRoll(ev.data); else acceptFrame(decodeFrame(ev.data));
+    };
+    ws.onclose = () => { if (this.ws === ws) this.lost(); };
+    ws.onerror = () => { /* onclose follows */ };
+  },
+  lost() {
+    const was = this.mode;
+    this.mode = 'offline'; this.ws = null; setConn();
+    if (this.host && was !== 'demo') {
+      const wait = Math.min(5000, 800 + this.retry++ * 600);
+      clearTimeout(this.rt);
+      this.rt = setTimeout(() => { if (this.mode === 'offline') this.connect(this.host); }, wait);
+    }
+  },
+  stop() {
+    clearTimeout(this.rt);
+    if (this.ws) { const w = this.ws; this.ws = null; w.onclose = null; try { w.close(); } catch (e) { /* ignore */ } }
+  },
+  demo() {
+    this.stop(); this.host = null; this.mode = 'demo'; setConn();
+    S.info = { fw: 'demo', ip: 'simulated', net: 'demo' };
+    Sim.start(); pushGen(); pushCfg(true);
+  },
+};
+function onDeviceMsg(m) {
+  if (m.t === 'hello') {
+    S.info = m; Dev.gotHello = true;
+    if (m.heap) S.heap = m.heap;
+    pushGen(); pushCfg(true); setConn();
+  } else if (m.t === 'stat') {
+    S.state = m.state;
+    if (m.fps !== undefined) S.fps = m.fps;
+    if (m.heap !== undefined) S.heap = m.heap;
+    if (m.rssi !== undefined) S.rssi = m.rssi;
+    if (m.up !== undefined) S.up = m.up;
+    if (m.single) endSingle();
+    updateRunUi(); updateStatus();
+  }
+}
+
+/* Simulated Pico: same cfg in, same binary frames out. */
+const Sim = {
+  cfg: null, timer: 0, t0: 0, gen: { on: true, freq: 1000, duty: 50 }, seq: 0, frames: 0, last: 0,
+  start() { this.stop(); this.cfg = this.cfg || devCfg(); this.tick(); },
+  stop() { clearTimeout(this.timer); this.timer = 0; },
+  apply(m) {
+    if (m.t === 'cfg') this.cfg = m;
+    else if (m.t === 'run') this.cfg.run = m.on;
+    else if (m.t === 'gen') this.gen = { on: m.on, freq: m.freq, duty: m.duty };
+  },
+  noise() { return (Math.random() + Math.random() + Math.random() - 1.5) * 0.012; },
+  signal(c, t) {
+    if (c === 0) {
+      const w = 2 * Math.PI * 1000 * t;
+      return 1.65 + 1.0 * Math.sin(w) + 0.14 * Math.sin(3 * w + 0.6) + this.noise();
+    }
+    if (c === 1) {
+      if (!this.gen.on) return 0.002 + this.noise() * 0.3;
+      const T = 1 / this.gen.freq, ph = ((t % T) + T) % T, D = T * this.gen.duty / 100, tr = Math.min(4e-6, D / 3, (T - D) / 3);
+      let v;
+      if (ph < tr) v = ph / tr; else if (ph < D) v = 1; else if (ph < D + tr) v = 1 - (ph - D) / tr; else v = 0;
+      return 3.28 * v + this.noise();
+    }
+    const T = 1 / 2300, ph = ((t % T) + T) % T / T;
+    return 1.1 + 0.8 * (ph < 0.5 ? 4 * ph - 1 : 3 - 4 * ph) + this.noise();
+  },
+  tick() {
+    const c = this.cfg;
+    this.timer = setTimeout(() => this.tick(), 20);
+    if (!c) return;
+    if (!c.run) { this.setState('stop'); return; }
+    if (c.roll) { this.rollTick(c); return; }
+    this.roll = null;
+    const now = performance.now();
+    const nch = [0, 1, 2].filter(i => c.mask >> i & 1);
+    const n = c.len, rate = c.rate;
+    const total = c.mode === 'free' ? n : 2 * n;
+    const dur = total / rate * 1000;
+    if (this.waitUntil === undefined || this.waitUntil === 0) { this.waitUntil = now + Math.min(dur, 1500); }
+    if (now < this.waitUntil) return;
+    this.waitUntil = 0;
+    const t0 = Math.random() * 0.01;
+    const raw = new Uint16Array(total * nch.length);
+    for (let i = 0; i < total; i++) {
+      const t = t0 + i / rate;
+      nch.forEach((ch, j) => {
+        raw[i * nch.length + j] = clamp(Math.round(this.signal(ch, t) / 3.3 * ADC_MAX), 0, ADC_MAX);
+      });
+    }
+    let idx = -1;
+    if (c.mode !== 'free') {
+      const j = Math.max(0, nch.indexOf(c.src));
+      let armed = false;
+      for (let i = c.pre; i < total - (n - c.pre); i++) {
+        const v = raw[i * nch.length + j];
+        if (c.edge === 'r') { if (v < c.level - c.hyst) armed = true; else if (armed && v >= c.level) { idx = i; break; } }
+        else { if (v > c.level + c.hyst) armed = true; else if (armed && v <= c.level) { idx = i; break; } }
+      }
+    }
+    let first = 0, state = c.mode === 'auto' ? 'auto' : 'run', flags = 0;
+    if (idx >= 0) { first = idx - c.pre; state = 'trig'; flags = 1; }
+    else if (c.mode === 'normal') state = 'wait';
+    if (!(idx < 0 && c.mode === 'normal')) {
+      const buf = new ArrayBuffer(16 + n * nch.length * 2);
+      const dv = new DataView(buf);
+      dv.setUint8(0, 0x53); dv.setUint8(1, flags); dv.setUint16(2, ++this.seq & 0xFFFF, true);
+      dv.setUint8(4, c.mask); dv.setUint8(5, nch.length); dv.setUint16(6, n, true);
+      dv.setUint32(8, rate, true); dv.setUint16(12, idx >= 0 ? c.pre : 0xFFFF, true);
+      new Uint16Array(buf, 16).set(raw.subarray(first * nch.length, (first + n) * nch.length));
+      this.frames++;
+      acceptFrame(decodeFrame(buf));
+      if (c.mode === 'single') { c.run = false; this.setState('stop', true); return; }
+    }
+    this.setState(state);
+    if (now - this.last > 1000) {
+      S.fps = Math.round(this.frames * 1000 / (now - this.last) * 10) / 10; this.frames = 0; this.last = now;
+      S.heap = 90000; S.up = Math.round(now / 1000); updateStatus();
+    }
+  },
+  slow(c, t) {
+    if (c === 0) return 1.65 + 1.0 * Math.sin(2 * Math.PI * 0.4 * t) + 0.18 * Math.sin(2 * Math.PI * 3.1 * t) + this.noise();
+    if (c === 1) return (t % 2 < 1 ? 3.28 : 0.01) + this.noise();
+    return 0.3 + 2.6 * ((t / 5) % 1) + this.noise();
+  },
+  rollTick(c) {
+    const now = performance.now(), key = c.mask + ':' + c.rate;
+    if (!this.rollS || this.rollS.key !== key) this.rollS = { key, t0: now, sent: 0 };
+    const R = this.rollS, ch = [0, 1, 2].filter(i => c.mask >> i & 1);
+    const n = Math.min(Math.floor((now - R.t0) * c.rate / 1000) - R.sent, 4000);
+    if (n < 1) return;
+    const buf = new ArrayBuffer(16 + n * ch.length * 2), dv = new DataView(buf);
+    dv.setUint8(0, 0x53); dv.setUint8(1, 2); dv.setUint16(2, ++this.seq & 0xFFFF, true);
+    dv.setUint8(4, c.mask); dv.setUint8(5, ch.length); dv.setUint16(6, n, true); dv.setUint32(8, c.rate, true); dv.setUint16(12, 0xFFFF, true);
+    const raw = new Uint16Array(buf, 16);
+    for (let i = 0; i < n; i++) ch.forEach((cc, j) => { raw[i * ch.length + j] = clamp(Math.round(this.slow(cc, (R.sent + i) / c.rate) / 3.3 * ADC_MAX), 0, ADC_MAX); });
+    R.sent += n;
+    acceptRoll(buf);
+    this.setState('roll');
+  },
+  setState(s, single) {
+    if (S.state !== s || single) { S.state = s; if (single) endSingle(); updateRunUi(); }
+  },
+};
+
+/* ================================================================== */
+/* measurements                                                       */
+/* ================================================================== */
+function measure(v, rate, scale) {
+  const n = v.length;
+  let mn = Infinity, mx = -Infinity, sum = 0, sq = 0;
+  for (let i = 0; i < n; i++) { const x = v[i]; if (x < mn) mn = x; if (x > mx) mx = x; sum += x; sq += x * x; }
+  const mean = sum / n, vpp = mx - mn;
+  const out = { min: mn * scale, max: mx * scale, vpp: vpp * scale, mean: mean * scale, rms: Math.sqrt(sq / n) * scale };
+  if (vpp < 0.03) return out;
+  const mid = (mn + mx) / 2, h = vpp * 0.1;
+  const rise = [], fall = [];
+  let armR = v[0] < mid - h, armF = v[0] > mid + h;
+  for (let i = 1; i < n; i++) {
+    const a = v[i - 1], b = v[i];
+    if (b < mid - h) armR = true;
+    if (b > mid + h) armF = true;
+    if (armR && a < mid && b >= mid) { rise.push((i - 1 + (mid - a) / (b - a)) / rate); armR = false; }
+    if (armF && a > mid && b <= mid) { fall.push((i - 1 + (a - mid) / (a - b)) / rate); armF = false; }
+  }
+  if (rise.length >= 2) {
+    out.period = (rise[rise.length - 1] - rise[0]) / (rise.length - 1);
+  } else if (fall.length >= 2) {
+    out.period = (fall[fall.length - 1] - fall[0]) / (fall.length - 1);
+  }
+  if (out.period) {
+    out.freq = 1 / out.period;
+    // Duty from whichever complete high or low pulses are in the window.
+    const highs = [], lows = [];
+    for (const r of rise) { const f = fall.find(t => t > r); if (f !== undefined) highs.push(f - r); }
+    for (const f of fall) { const r = rise.find(t => t > f); if (r !== undefined) lows.push(r - f); }
+    const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+    if (highs.length) out.duty = clamp(avg(highs) / out.period * 100, 0, 100);
+    else if (lows.length) out.duty = clamp(100 - avg(lows) / out.period * 100, 0, 100);
+  }
+  const lo = mn + vpp * 0.1, hi = mn + vpp * 0.9;
+  for (let i = 1; i < n; i++) {
+    if (v[i - 1] < lo && v[i] >= lo) {
+      let j = i;
+      while (j < n && v[j] < hi) j++;
+      if (j < n && j - i < n / 4) {
+        const t1 = (i - 1 + (lo - v[i - 1]) / (v[i] - v[i - 1])) / rate;
+        const t2 = (j - 1 + (hi - v[j - 1]) / (v[j] - v[j - 1])) / rate;
+        out.rise = t2 - t1;
+      }
+      break;
+    }
+  }
+  return out;
+}
+function updateMeasurements() {
+  const f = S.frame, box = $('#meas');
+  const en = S.ch.map((c, i) => c.en && f && f.data[i] ? i : -1).filter(i => i >= 0);
+  if (!box._built || box._n !== en.join()) {
+    box._built = true; box._n = en.join();
+    box.innerHTML = en.map(i => `<div class="mcard"><h4><b style="background:${COL[i]}">CH${i + 1}</b>${PIN[i]}</h4><div class="mgrid">` +
+      ['Vpp', 'Max', 'Min', 'Mean', 'RMS', 'Freq', 'Period', 'Duty', 'Rise'].map(k => `<div><span>${k}</span><output data-c="${i}" data-k="${k}">-</output></div>`).join('') +
+      '</div></div>').join('');
+  }
+  if (!f) return;
+  S.near = null;
+  for (const i of en) {
+    const v = f.roll ? f.data[i].subarray(Math.max(0, f.n - Math.round(HDIV * S.tdiv * f.rate))) : f.data[i];
+    const m = measure(v, f.rate, S.ch[i].probe);
+    const set = (k, t) => { const o = $(`output[data-c="${i}"][data-k="${k}"]`, box); if (o) o.textContent = t; };
+    set('Vpp', si(m.vpp, 'V')); set('Max', si(m.max, 'V')); set('Min', si(m.min, 'V'));
+    set('Mean', si(m.mean, 'V')); set('RMS', si(m.rms, 'V'));
+    if (m.freq && m.freq > 0.4 * f.rate && !S.near) S.near = { c: i, f: m.freq, fs: f.rate };
+    set('Freq', m.freq ? si(m.freq, 'Hz') : '-'); set('Period', m.period ? si(m.period, 's') : '-');
+    set('Duty', m.duty !== undefined ? m.duty.toFixed(1) + ' %' : '-');
+    set('Rise', m.rise ? si(m.rise, 's') : '-');
+  }
+  updateAliasUi();
+}
+
+/* ================================================================== */
+/* FFT                                                                */
+/* ================================================================== */
+function fftInPlace(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const tr = re[b] * cr - im[b] * ci, ti = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+}
+const winCache = {};
+function windowFn(kind, n) {
+  const key = kind + n;
+  if (winCache[key]) return winCache[key];
+  const w = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = 2 * Math.PI * i / (n - 1);
+    w[i] = kind === 'hann' ? 0.5 - 0.5 * Math.cos(x) : kind === 'blackman' ? 0.42 - 0.5 * Math.cos(x) + 0.08 * Math.cos(2 * x) : 1;
+  }
+  return winCache[key] = w;
+}
+function spectrum(v, scale) {
+  let N = 1; while (N * 2 <= Math.min(v.length, 8192)) N *= 2;
+  const w = windowFn(S.fft.win, N);
+  const re = new Float64Array(N), im = new Float64Array(N);
+  let mean = 0; for (let i = 0; i < N; i++) mean += v[i]; mean /= N;
+  let ws = 0; for (let i = 0; i < N; i++) { re[i] = (v[i] - mean) * scale * w[i]; ws += w[i]; }
+  fftInPlace(re, im);
+  const db = new Float32Array(N / 2);
+  for (let k = 0; k < N / 2; k++) db[k] = 20 * Math.log10(Math.max(1e-9, 2 * Math.hypot(re[k], im[k]) / ws));
+  return { db, N };
+}
+
+/* ================================================================== */
+/* rendering                                                          */
+/* ================================================================== */
+const scopeCv = $('#scope'), fftCv = $('#fft');
+const persistCv = document.createElement('canvas');
+const SCR_BG = '#05070b';
+let geo = { L: 20, T: 24, W: 100, H: 100 };
+
+function fitCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    return true;
+  }
+  return false;
+}
+function ctxOf(cv) {
+  const g = cv.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return g;
+}
+const yDiv = (ch, v) => ch.pos + v * ch.probe / ch.vdiv;
+const yPx = d => geo.T + geo.H / 2 - d * geo.H / VDIV_N;
+const xPx = d => geo.L + d * geo.W / HDIV;
+
+function trigXdiv(f) { return S.trig.pre * HDIV; }
+function sampleX0(f) {
+  if (f.roll) return HDIV - (f.n - 1) / (f.rate * S.tdiv);
+  const pre = f.pre >= 0 ? f.pre : Math.round(S.trig.pre * HDIV * S.tdiv * f.rate);
+  return trigXdiv(f) - pre / (f.rate * S.tdiv);
+}
+
+function lanczos(x) {
+  if (x === 0) return 1;
+  if (x <= -3 || x >= 3) return 0;
+  const p = Math.PI * x;
+  return 3 * Math.sin(p) * Math.sin(p / 3) / (p * p);
+}
+function tracePath(g, f, c) {
+  const v = f.data[c]; if (!v) return false;
+  const ch = S.ch[c], n = v.length;
+  const dx = geo.W / HDIV;
+  const pps = (1 / f.rate) / S.tdiv * dx;            // pixels per sample
+  const x0 = xPx(sampleX0(f));
+  const mode = S.interp === 'auto' ? (pps >= 4 ? 'sinc' : 'linear') : S.interp;
+  const xa = geo.L - 2, xb = geo.L + geo.W + 2;
+  g.beginPath();
+  if (pps < 0.7) {
+    const cols = Math.ceil(geo.W) + 4;
+    for (let px = 0; px < cols; px++) {
+      const x = geo.L - 2 + px;
+      const s0 = Math.max(0, Math.floor((x - x0) / pps)), s1 = Math.min(n - 1, Math.floor((x + 1 - x0) / pps));
+      if (s1 < s0 || s0 >= n) continue;
+      let mn = Infinity, mx = -Infinity;
+      for (let i = s0; i <= s1; i++) { const q = v[i]; if (q < mn) mn = q; if (q > mx) mx = q; }
+      g.moveTo(x + .5, yPx(yDiv(ch, mn)));
+      g.lineTo(x + .5, yPx(yDiv(ch, mx)) - 0.5);
+    }
+    return true;
+  }
+  if (mode === 'sinc') {
+    let first = true;
+    for (let x = xa; x <= xb; x += 1) {
+      const s = (x - x0) / pps;
+      if (s < -1 || s > n) { continue; }
+      const i0 = Math.floor(s);
+      let acc = 0;
+      for (let k = i0 - 2; k <= i0 + 3; k++) acc += v[clamp(k, 0, n - 1)] * lanczos(s - k);
+      const y = yPx(yDiv(ch, acc));
+      if (first) { g.moveTo(x, y); first = false; } else g.lineTo(x, y);
+    }
+    return true;
+  }
+  const i0 = Math.max(0, Math.floor((xa - x0) / pps) - 1), i1 = Math.min(n - 1, Math.ceil((xb - x0) / pps) + 1);
+  if (mode === 'dots') {
+    for (let i = i0; i <= i1; i++) { const x = x0 + i * pps, y = yPx(yDiv(ch, v[i])); g.rect(x - 1.5, y - 1.5, 3, 3); }
+    return 'dots';
+  }
+  for (let i = i0; i <= i1; i++) {
+    const x = x0 + i * pps, y = yPx(yDiv(ch, v[i]));
+    if (i === i0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  return true;
+}
+function drawTraces(g, f, glow) {
+  g.save();
+  g.beginPath(); g.rect(geo.L, geo.T, geo.W, geo.H); g.clip();
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  for (const c of f.chans) {
+    if (!S.ch[c] || !S.ch[c].en) continue;
+    const r = tracePath(g, f, c);
+    if (!r) continue;
+    g.strokeStyle = g.fillStyle = COL[c];
+    if (glow) { g.shadowColor = COL[c]; g.shadowBlur = 6; }
+    if (r === 'dots') g.fill(); else { g.lineWidth = glow ? 1.6 : 1.4; g.stroke(); }
+    g.shadowBlur = 0;
+  }
+  g.restore();
+}
+const FADE = [1, 0.35, 0.12, 0.04, 0];
+function clearPersist() { persistCv.width = 0; }
+function stampPersist(f) {
+  if (!S.persist || f.roll) return;
+  if (persistCv.width !== scopeCv.width || persistCv.height !== scopeCv.height) {
+    persistCv.width = scopeCv.width; persistCv.height = scopeCv.height;
+  }
+  const g = persistCv.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (FADE[S.persist]) {
+    g.save(); g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = `rgba(0,0,0,${FADE[S.persist]})`; g.fillRect(0, 0, scopeCv.clientWidth, scopeCv.clientHeight);
+    g.restore();
+  }
+  g.globalAlpha = 0.55;
+  drawTraces(g, f, false);
+  g.globalAlpha = 1;
+}
+function drawGrid(g) {
+  const { L, T, W, H } = geo;
+  const grad = g.createLinearGradient(0, T, 0, T + H);
+  grad.addColorStop(0, '#0a0f18'); grad.addColorStop(1, '#070a11');
+  g.fillStyle = grad; g.fillRect(L, T, W, H);
+  if (S.grid !== 'off') {
+    g.lineWidth = 1;
+    for (let i = 0; i <= HDIV; i++) {
+      const x = Math.round(L + i * W / HDIV) + .5;
+      g.strokeStyle = i === HDIV / 2 ? '#34476a' : '#1b2740';
+      if (S.grid === 'dots') { g.setLineDash([1, 5]); g.strokeStyle = '#2b3b5a'; }
+      g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + H); g.stroke(); g.setLineDash([]);
+    }
+    for (let j = 0; j <= VDIV_N; j++) {
+      const y = Math.round(T + j * H / VDIV_N) + .5;
+      g.strokeStyle = j === VDIV_N / 2 ? '#34476a' : '#1b2740';
+      if (S.grid === 'dots') { g.setLineDash([1, 5]); g.strokeStyle = '#2b3b5a'; }
+      g.beginPath(); g.moveTo(L, y); g.lineTo(L + W, y); g.stroke(); g.setLineDash([]);
+    }
+    g.strokeStyle = '#2a3b5c';
+    const cx = L + W / 2, cy = T + H / 2;
+    for (let i = 0; i <= HDIV * 5; i++) { const x = Math.round(L + i * W / HDIV / 5) + .5, tl = i % 5 ? 3 : 0; if (tl) { g.beginPath(); g.moveTo(x, cy - tl); g.lineTo(x, cy + tl); g.stroke(); } }
+    for (let j = 0; j <= VDIV_N * 5; j++) { const y = Math.round(T + j * H / VDIV_N / 5) + .5, tl = j % 5 ? 3 : 0; if (tl) { g.beginPath(); g.moveTo(cx - tl, y); g.lineTo(cx + tl, y); g.stroke(); } }
+  }
+  g.strokeStyle = '#3a4d73'; g.lineWidth = 1; g.strokeRect(L + .5, T + .5, W, H);
+}
+function arrow(g, x, y, dir, col, label, filled = true) {
+  g.save(); g.fillStyle = col; g.strokeStyle = col; g.lineWidth = 1.5;
+  g.beginPath();
+  if (dir === 'r') { g.moveTo(x, y - 6); g.lineTo(x + 11, y); g.lineTo(x, y + 6); }
+  else if (dir === 'l') { g.moveTo(x, y - 6); g.lineTo(x - 11, y); g.lineTo(x, y + 6); }
+  else { g.moveTo(x - 6, y); g.lineTo(x, y + 10); g.lineTo(x + 6, y); }
+  g.closePath(); filled ? g.fill() : g.stroke();
+  if (label) {
+    g.fillStyle = '#0b0f17'; g.font = '700 9px -apple-system,Segoe UI,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (dir === 'r') g.fillText(label, x + 3.5, y + .5); else if (dir === 'l') g.fillText(label, x - 3.5, y + .5); else g.fillText(label, x, y + 3);
+  }
+  g.restore();
+}
+function drawMarkers(g) {
+  const { L, T, W, H } = geo;
+  for (let c = 0; c < NCH; c++) {
+    const ch = S.ch[c]; if (!ch.en) continue;
+    const y = clamp(yPx(ch.pos), T, T + H);
+    arrow(g, L - 13, y, 'r', COL[c], String(c + 1));
+    if (c === S.active) { g.strokeStyle = COL[c]; g.globalAlpha = .35; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(L, y + .5); g.lineTo(L + W, y + .5); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
+  }
+  if (isRoll()) {
+    g.fillStyle = '#9fb0cf'; g.font = '600 10px -apple-system,Segoe UI,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText(si(S.tdiv, 's') + '/div   ROLL', L + 2, T - 11);
+    return;
+  }
+  const en = enabledChans();
+  const src = en.includes(S.trig.src) ? S.trig.src : en[0];
+  const ty = clamp(yPx(yDiv(S.ch[src], S.trig.level)), T, T + H);
+  arrow(g, L + W + 2, ty, 'l', COL[src], 'T');
+  g.strokeStyle = COL[src]; g.globalAlpha = .28; g.setLineDash([3, 5]);
+  g.beginPath(); g.moveTo(L, ty + .5); g.lineTo(L + W, ty + .5); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  const tx = xPx(S.trig.pre * HDIV);
+  arrow(g, tx, T - 12, 'd', '#e8eefc');
+  g.fillStyle = '#e8eefc'; g.font = '600 10px -apple-system,Segoe UI,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText(si(S.tdiv, 's') + '/div', L + 2, T - 11);
+}
+function cursorValues() {
+  const c = S.cur, a = S.ch[S.active];
+  return {
+    dt: (c.x2 - c.x1) * S.tdiv,
+    t1: (c.x1 - (isRoll() ? HDIV : S.trig.pre * HDIV)) * S.tdiv, t2: (c.x2 - (isRoll() ? HDIV : S.trig.pre * HDIV)) * S.tdiv,
+    v1: (c.y1 - a.pos) * a.vdiv, v2: (c.y2 - a.pos) * a.vdiv,
+  };
+}
+function drawCursors(g) {
+  const m = S.cursors; if (m === 'off') { $('#curbox').style.display = 'none'; return; }
+  const { L, T, W, H } = geo, c = S.cur, col = '#9bd1ff';
+  g.save(); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1; g.setLineDash([6, 4]);
+  g.font = '700 10px -apple-system,Segoe UI,sans-serif'; g.textBaseline = 'middle';
+  if (m === 'time' || m === 'both') {
+    [['x1', 'X1'], ['x2', 'X2']].forEach(([k, n]) => {
+      const x = Math.round(xPx(c[k])) + .5;
+      g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + H); g.stroke();
+      g.setLineDash([]); g.textAlign = 'center'; g.fillText(n, x, T + H - 8); g.setLineDash([6, 4]);
+    });
+  }
+  if (m === 'volt' || m === 'both') {
+    [['y1', 'Y1'], ['y2', 'Y2']].forEach(([k, n]) => {
+      const y = Math.round(yPx(c[k])) + .5;
+      g.beginPath(); g.moveTo(L, y); g.lineTo(L + W, y); g.stroke();
+      g.setLineDash([]); g.textAlign = 'left'; g.fillText(n, L + 5, y - 8); g.setLineDash([6, 4]);
+    });
+  }
+  g.restore();
+  const v = cursorValues(), box = $('#curbox'), rows = [];
+  if (m === 'time' || m === 'both') {
+    rows.push(['X1', si(v.t1, 's')], ['X2', si(v.t2, 's')], ['ΔT', si(v.dt, 's')], ['1/ΔT', Math.abs(v.dt) > 0 ? si(1 / Math.abs(v.dt), 'Hz') : '-']);
+  }
+  if (m === 'volt' || m === 'both') {
+    rows.push(['Y1 (CH' + (S.active + 1) + ')', si(v.v1, 'V')], ['Y2', si(v.v2, 'V')], ['ΔV', si(v.v2 - v.v1, 'V')]);
+  }
+  box.style.display = 'block';
+  box.innerHTML = rows.map(r => `<div><span class="k">${r[0]}</span><span>${r[1]}</span></div>`).join('');
+}
+function drawScope() {
+  if (fitCanvas(scopeCv)) clearPersist();
+  const g = ctxOf(scopeCv), cw = scopeCv.clientWidth, ch = scopeCv.clientHeight;
+  geo = { L: 20, T: 26, W: Math.max(50, cw - 20 - 22), H: Math.max(50, ch - 26 - 10) };
+  g.fillStyle = SCR_BG; g.fillRect(0, 0, cw, ch);
+  drawGrid(g);
+  const f = S.frame;
+  if (f) {
+    if (S.persist && persistCv.width) g.drawImage(persistCv, 0, 0, cw, ch);
+    drawTraces(g, f, true);
+  }
+  drawMarkers(g);
+  drawCursors(g);
+  const msg = $('#msg');
+  msg.textContent = !f ? (Dev.mode === 'offline' ? 'Disconnected' : Dev.mode === 'connecting' ? 'Connecting...' : 'Waiting for data...') : S.state === 'wait' ? 'Waiting for trigger...' : '';
+}
+function drawFft() {
+  if (!S.fft.on) return;
+  fitCanvas(fftCv);
+  const g = ctxOf(fftCv), W = fftCv.clientWidth, H = fftCv.clientHeight;
+  g.fillStyle = SCR_BG; g.fillRect(0, 0, W, H);
+  const L = 46, R = 18, T = 14, B = 22, pw = W - L - R, ph = H - T - B;
+  const top = 10, bot = -100;
+  g.font = '10px ui-monospace,Menlo,monospace'; g.textBaseline = 'middle';
+  g.strokeStyle = '#1b2740'; g.fillStyle = '#6f7f9c'; g.lineWidth = 1; g.textAlign = 'right';
+  for (let d = top; d >= bot; d -= 20) {
+    const y = Math.round(T + (top - d) / (top - bot) * ph) + .5;
+    g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.fillText(d + '', L - 6, y);
+  }
+  g.save(); g.translate(11, T + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('dBV', 0, 0); g.restore();
+  const f = S.frame;
+  if (!f) return;
+  if (f.roll || isRoll()) {
+    g.fillStyle = '#7d8aa5'; g.textAlign = 'center'; g.font = '600 12px -apple-system,Segoe UI,sans-serif';
+    g.fillText('Spectrum is not available in roll mode', W / 2, H / 2);
+    return;
+  }
+  const nyq = f.rate / 2, fmin = S.fft.x === 'log' ? Math.max(nyq / 1000, 5) : 0;
+  const fx = hz => L + (S.fft.x === 'log' ? Math.log(Math.max(hz, fmin) / fmin) / Math.log(nyq / fmin) : hz / nyq) * pw;
+  g.textAlign = 'center';
+  const ticks = [];
+  if (S.fft.x === 'log') { for (let d = 1; d <= nyq; d *= 10) for (const m of [1, 2, 5]) if (d * m >= fmin && d * m <= nyq) ticks.push(d * m); }
+  else { const step = [1, 2, 5].map(m => m * 10 ** Math.floor(Math.log10(nyq / 6))).find(s => nyq / s <= 8) || nyq / 5; for (let hz = 0; hz <= nyq; hz += step) ticks.push(hz); }
+  for (const hz of ticks) {
+    const x = Math.round(fx(hz)) + .5;
+    g.strokeStyle = '#17223a'; g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke();
+    g.fillStyle = '#6f7f9c'; g.fillText(si(hz, 'Hz', 2).replace(' ', ''), x, H - 9);
+  }
+  g.strokeStyle = '#3a4d73'; g.strokeRect(L + .5, T + .5, pw, ph);
+  g.save(); g.beginPath(); g.rect(L, T, pw, ph); g.clip();
+  let peak = null;
+  for (const c of f.chans) {
+    if (!S.ch[c].en) continue;
+    const { db, N } = spectrum(f.data[c], S.ch[c].probe);
+    const df = f.rate / N;
+    g.beginPath();
+    for (let k = 1; k < db.length; k++) {
+      const x = fx(k * df), y = T + clamp((top - db[k]) / (top - bot), 0, 1) * ph;
+      if (k === 1) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.strokeStyle = COL[c]; g.lineWidth = 1.3; g.shadowColor = COL[c]; g.shadowBlur = 4; g.stroke(); g.shadowBlur = 0;
+    if (!peak) {
+      let km = 2; for (let k = 2; k < db.length - 1; k++) if (db[k] > db[km]) km = k;
+      const a = db[km - 1], b = db[km], d = db[km + 1], den = a - 2 * b + d;
+      const off = den !== 0 ? 0.5 * (a - d) / den : 0;
+      peak = { hz: (km + off) * df, db: b - 0.25 * (a - d) * off, c };
+    }
+  }
+  g.restore();
+  if (peak) {
+    const x = fx(peak.hz), y = T + clamp((top - peak.db) / (top - bot), 0, 1) * ph;
+    g.fillStyle = '#e8eefc'; g.beginPath(); g.moveTo(x, y - 3); g.lineTo(x - 5, y - 11); g.lineTo(x + 5, y - 11); g.closePath(); g.fill();
+    g.textAlign = x > L + pw - 150 ? 'right' : 'left';
+    g.font = '600 11px ui-monospace,Menlo,monospace';
+    g.fillText(`${si(peak.hz, 'Hz')}  ${peak.db.toFixed(1)} dBV`, x + (g.textAlign === 'left' ? 8 : -8), Math.max(T + 8, y - 16));
+  }
+}
+
+function frameLoop() {
+  if (dirty) {
+    dirty = false;
+    drawScope(); drawFft();
+  }
+  requestAnimationFrame(frameLoop);
+}
+
+/* ================================================================== */
+/* canvas interaction                                                 */
+/* ================================================================== */
+let drag = null;
+function hitTest(mx, my) {
+  const { L, T, W, H } = geo, tol = 9;
+  if (mx < L - 1) {
+    for (let c = 0; c < NCH; c++) if (S.ch[c].en && Math.abs(my - clamp(yPx(S.ch[c].pos), T, T + H)) < 10) return { k: 'pos', c };
+  }
+  if (mx > L + W + 1 && !isRoll()) {
+    const en = enabledChans(), src = en.includes(S.trig.src) ? S.trig.src : en[0];
+    if (Math.abs(my - clamp(yPx(yDiv(S.ch[src], S.trig.level)), T, T + H)) < 11) return { k: 'lvl', c: src };
+  }
+  if (my < T && !isRoll() && Math.abs(mx - xPx(S.trig.pre * HDIV)) < 12) return { k: 'tpos' };
+  const m = S.cursors;
+  if (m === 'time' || m === 'both') for (const k of ['x1', 'x2']) if (Math.abs(mx - xPx(S.cur[k])) < tol && my >= T && my <= T + H) return { k };
+  if (m === 'volt' || m === 'both') for (const k of ['y1', 'y2']) if (Math.abs(my - yPx(S.cur[k])) < tol && mx >= L && mx <= L + W) return { k };
+  return null;
+}
+scopeCv.addEventListener('pointerdown', e => {
+  const r = scopeCv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const h = hitTest(mx, my);
+  if (!h) return;
+  drag = h; scopeCv.setPointerCapture(e.pointerId);
+  if (h.c !== undefined) selectChannel(h.c);
+});
+scopeCv.addEventListener('pointermove', e => {
+  const r = scopeCv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  if (!drag) {
+    const h = hitTest(mx, my);
+    scopeCv.style.cursor = !h ? 'default' : (h.k === 'tpos' || h.k[0] === 'x') ? 'ew-resize' : 'ns-resize';
+    return;
+  }
+  const yd = (geo.T + geo.H / 2 - my) / (geo.H / VDIV_N), xd = (mx - geo.L) / (geo.W / HDIV);
+  if (drag.k === 'pos') { S.ch[drag.c].pos = clamp(Math.round(yd * 20) / 20, -4, 4); syncChannelUi(); pushCfg(); }
+  else if (drag.k === 'lvl') {
+    const ch = S.ch[drag.c];
+    S.trig.level = clamp((yd - ch.pos) * ch.vdiv / ch.probe, 0, S.vref); syncTrigUi(); pushCfg();
+  } else if (drag.k === 'tpos') { S.trig.pre = clamp(Math.round(xd) / HDIV === xd / HDIV ? xd / HDIV : xd / HDIV, 0.05, 0.95); syncTimebaseUi(); pushCfg(); }
+  else if (drag.k[0] === 'x') { S.cur[drag.k] = clamp(xd, 0, HDIV); redraw(); }
+  else if (drag.k[0] === 'y') { S.cur[drag.k] = clamp(yd, -4, 4); redraw(); }
+});
+const endDrag = () => { drag = null; };
+scopeCv.addEventListener('pointerup', endDrag);
+scopeCv.addEventListener('pointercancel', endDrag);
+scopeCv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const dir = e.deltaY > 0 ? 1 : -1;
+  if (e.shiftKey) stepVdiv(S.active, -dir); else stepTdiv(dir);
+}, { passive: false });
+
+/* ================================================================== */
+/* controls                                                           */
+/* ================================================================== */
+function stepTdiv(d) {
+  const i = clamp(idxNear(TDIV, S.tdiv) + d, 0, TDIV.length - 1);
+  if (TDIV[i] === S.tdiv) return;
+  S.tdiv = TDIV[i];
+  syncTimebaseUi(); pushCfg(); clearPersist();
+}
+function stepVdiv(c, d) {
+  const ch = S.ch[c], i = clamp(idxNear(VDIV, ch.vdiv) + d, 0, VDIV.length - 1);
+  ch.vdiv = VDIV[i]; syncChannelUi(); clearPersist(); redraw();
+}
+function selectChannel(c) { S.active = c; syncChannelUi(); redraw(); }
+
+function seg(id, get, set, parse = v => v) {
+  const el = $(id);
+  const refresh = () => $$('button', el).forEach(b => b.setAttribute('aria-pressed', String(parse(b.dataset.v) === get())));
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(parse(b.dataset.v)); refresh(); });
+  refresh();
+  return refresh;
+}
+
+const chsEl = $('#chs');
+chsEl.innerHTML = [0, 1, 2].map(i => `
+  <div class="chrow" data-c="${i}" style="--c:${COL[i]}">
+    <div class="chhead">
+      <button class="chtog" aria-pressed="true" aria-label="Show channel ${i + 1}">CH${i + 1}</button>
+      <span class="pin">${PIN[i]}</span><span class="grow"></span>
+      <select class="probe" aria-label="Probe attenuation"><option value="1">1x probe</option><option value="10">10x probe</option></select>
+    </div>
+    <div class="row"><span class="lbl">Scale</span><button class="step dn" aria-label="More volts per division">-</button><output class="val grow vd"></output><button class="step up" aria-label="Fewer volts per division">+</button></div>
+    <div class="row"><span class="lbl">Position</span><input class="pos" type="range" min="-4" max="4" step="0.05" aria-label="Vertical position"><button class="step zr" title="Center 0 V" aria-label="Reset position">0</button></div>
+  </div>`).join('');
+chsEl.addEventListener('click', e => {
+  const row = e.target.closest('.chrow'); if (!row) return;
+  const c = +row.dataset.c, ch = S.ch[c];
+  if (e.target.closest('.chtog')) { ch.en = !ch.en; if (!S.ch.some(x => x.en)) { ch.en = true; toast('At least one channel must stay on'); } selectChannel(c); syncTrigUi(); pushCfg(true); return; }
+  if (e.target.closest('.dn')) stepVdiv(c, 1);
+  else if (e.target.closest('.up')) stepVdiv(c, -1);
+  else if (e.target.closest('.zr')) { ch.pos = -3; syncChannelUi(); redraw(); }
+  selectChannel(c);
+});
+chsEl.addEventListener('input', e => {
+  const row = e.target.closest('.chrow'); if (!row) return;
+  const ch = S.ch[+row.dataset.c];
+  if (e.target.classList.contains('pos')) ch.pos = +e.target.value;
+  if (e.target.classList.contains('probe')) { ch.probe = +e.target.value; updateMeasurements(); }
+  syncChannelUi(); clearPersist(); redraw();
+});
+function syncChannelUi() {
+  $$('.chrow', chsEl).forEach(row => {
+    const c = +row.dataset.c, ch = S.ch[c];
+    row.classList.toggle('active', c === S.active);
+    $('.chtog', row).setAttribute('aria-pressed', String(ch.en));
+    $('.vd', row).textContent = si(ch.vdiv, 'V') + '/div';
+    $('.pos', row).value = ch.pos;
+    $('.probe', row).value = ch.probe;
+  });
+  updateInfo();
+}
+function syncTimebaseUi() {
+  $('#tdVal').textContent = si(S.tdiv, 's') + '/div';
+  $('#tPos').disabled = isRoll();
+  $('#tPos').value = S.trig.pre; $('#tPosVal').textContent = Math.round(S.trig.pre * 100) + ' %';
+  updateInfo(); redraw();
+}
+let refreshers = {};
+function syncTrigUi() {
+  const en = enabledChans();
+  if (!en.includes(S.trig.src)) S.trig.src = en[0];
+  refreshers.src && refreshers.src();
+  const probe = S.ch[S.trig.src].probe;
+  $('#tLvl').max = S.vref; $('#tLvl').value = S.trig.level;
+  $('#tLvlVal').textContent = si(S.trig.level * probe, 'V');
+  $$('#segSrc button').forEach(b => { b.disabled = !S.ch[+b.dataset.v].en; b.style.opacity = b.disabled ? .35 : 1; });
+  updateInfo(); redraw();
+}
+function updateInfo() {
+  const p = plan();
+  $('#acqInfo').textContent = p.roll ? `roll ${si(p.rate, 'S/s')} x ${p.nch}ch, avg ${p.K}` : `${si(p.rate, 'S/s')} x ${p.nch}ch, ${p.len} pts`;
+  const bar = $('#infobar');
+  const tags = S.ch.map((c, i) => `<span class="tag ${c.en ? '' : 'off'} ${i === S.active ? 'act' : ''}" data-c="${i}"><b style="background:${COL[i]}">CH${i + 1}</b>${si(c.vdiv, 'V')}/div  DC  ${c.probe}x</span>`);
+  tags.push(`<span class="tag"><b style="background:#c9d4ee">TIME</b>${si(S.tdiv, 's')}/div</span>`);
+  if (!p.roll) tags.push(`<span class="tag"><b style="background:#c9d4ee">TRIG</b>CH${p.src + 1} ${S.trig.edge === 'r' ? 'rising' : 'falling'} ${si(S.trig.level * S.ch[p.src].probe, 'V')}  ${S.trig.mode}</span>`);
+  tags.push(`<span class="tag"><b style="background:#c9d4ee">ACQ</b>${si(p.rate, 'S/s')}/ch  ${p.roll ? 'roll, ' + (p.K > 1 ? 'avg x' + p.K : 'no averaging') : p.len + ' pts' + (S.avg > 1 ? '  avg ' + S.avg : '')}</span>`);
+  bar.innerHTML = tags.join('');
+}
+$('#infobar').addEventListener('click', e => { const t = e.target.closest('.tag[data-c]'); if (t) selectChannel(+t.dataset.c); });
+
+/* run / stop / single */
+function updateRunUi() {
+  const b = $('#btnRun'), running = S.run && S.state !== 'stop';
+  b.classList.toggle('running', running); b.classList.toggle('stopped', !running);
+  $('#txtRun').textContent = running ? 'Run' : 'Stopped';
+  $('#icoRun').innerHTML = running ? '<rect x="2" y="2" width="4" height="10"/><rect x="8" y="2" width="4" height="10"/>' : '<path d="M3 1.5v11l9-5.5z"/>';
+  $('#btnSingle').classList.toggle('armed', S.single && S.run);
+  const map = { trig: ['TRIG’D', 'var(--ok)'], auto: ['AUTO', 'var(--warn)'], wait: ['WAIT', 'var(--wait)'], run: ['FREE', 'var(--ok)'], roll: ['ROLL', 'var(--wait)'], stop: ['STOP', 'var(--bad)'] };
+  const [t, c] = map[S.state] || map.stop;
+  $('#txtTrig').textContent = t; $('#dotTrig').style.background = c; $('#trigstat').style.color = c;
+  redraw();
+}
+function setRun(on) { S.run = on; Dev.send({ t: 'run', on }); if (!on) { S.state = 'stop'; if (S.single) endSingle(); } updateRunUi(); }
+function endSingle() {
+  if (!S.single) return;
+  S.single = false; S.run = false; S.trig.mode = S.prevMode;
+  refreshers.mode && refreshers.mode();
+  Dev.send({ ...devCfg(), run: false });
+  updateRunUi();
+}
+function startSingle() {
+  if (isRoll()) { toast('Single capture is not available in roll mode'); return; }
+  if (!S.single) S.prevMode = S.trig.mode;
+  S.single = true; S.run = true;
+  const c = devCfg(); c.mode = 'single'; c.run = true;
+  S.epoch++; resetAverage(); clearPersist();
+  Dev.send(c); S.state = 'wait'; updateRunUi();
+}
+$('#btnRun').onclick = () => { if (S.single) endSingle(); setRun(!(S.run && S.state !== 'stop')); if (S.run) pushCfg(true); };
+$('#btnSingle').onclick = startSingle;
+$('#btnAuto').onclick = autoset;
+
+/* autoset */
+let autosetting = false;
+async function autoset() {
+  if (autosetting || Dev.mode === 'offline' || Dev.mode === 'connecting') return;
+  while (S.probing) await new Promise(r => setTimeout(r, 50));
+  autosetting = true; toast('Autoset...');
+  try {
+    S.run = true; S.single = false;
+    const keepMode = S.trig.mode;
+    S.trig.mode = 'free';
+    let freq = 0, fr = null;
+    for (const td of [1e-3, 1e-2, 1e-1]) {
+      S.tdiv = td; S.epoch++; resetAverage();
+      Dev.send(devCfg());
+      await nextFrame(); fr = await nextFrame(5000);
+      const k = fr.chans.includes(S.active) ? S.active : fr.chans[0];
+      const m = measure(fr.data[k], fr.rate, 1);
+      if (m.freq) { freq = m.freq; break; }
+    }
+    for (const c of fr.chans) {
+      const m = measure(fr.data[c], fr.rate, 1), ch = S.ch[c];
+      const span = Math.max(m.vpp, 0.02) * ch.probe, mid = (m.min + m.max) / 2 * ch.probe;
+      ch.vdiv = VDIV.find(v => v * 5 >= span) || VDIV[VDIV.length - 1];
+      ch.pos = clamp(-mid / ch.vdiv, -4, 4);
+    }
+    const k = fr.chans.includes(S.active) ? S.active : fr.chans[0];
+    const mk = measure(fr.data[k], fr.rate, 1);
+    S.trig.src = k; S.trig.level = clamp((mk.min + mk.max) / 2, 0, S.vref); S.trig.edge = 'r'; S.trig.pre = 0.5;
+    S.trig.mode = keepMode === 'free' ? 'auto' : keepMode;
+    S.tdiv = freq ? TDIV[clamp(idxNear(TDIV, 3 / freq / HDIV), 0, TDIV.length - 1)] : 1e-3;
+    syncChannelUi(); syncTimebaseUi(); syncTrigUi(); refreshers.mode && refreshers.mode(); refreshers.edge && refreshers.edge();
+    pushCfg(true); updateRunUi();
+    toast(freq ? `Autoset: ${si(freq, 'Hz')} on CH${k + 1}` : 'Autoset: no periodic signal found');
+  } catch (e) { toast('Autoset: no data'); }
+  autosetting = false;
+}
+
+/* aliasing detection */
+const aliasOf = (f, fs) => Math.abs(f - Math.round(f / fs) * fs);
+let probeTimer = 0, aliasNote = 'auto';
+async function aliasProbe(manual) {
+  const busy = S.probing || autosetting || !S.run || Dev.mode === 'offline' || Dev.mode === 'connecting';
+  if (isRoll()) { if (manual) toast('Alias check is not available in roll mode'); return; }
+  if (busy) { if (manual) toast('Alias check needs the scope running'); return; }
+  const p = plan();
+  if (!manual && p.rate < 10000) { aliasNote = 'off at slow rates'; updateAliasUi(); return; }
+  S.probing = true;
+  try {
+    const base = devCfg(); base.mode = 'free'; base.len = 1999; base.pre = 0;
+    const grab = async rate => {
+      Dev.send({ ...base, rate });
+      for (let i = 0; i < 8; i++) {
+        const f = await nextFrame(6000);
+        if (f.n === 1999 && Math.abs(f.rate - rate) / rate < 0.02) return f;
+      }
+      throw new Error('no probe frame');
+    };
+    const f1 = await grab(p.rate), f2 = await grab(Math.round(p.rate * 0.77));
+    let found = null, measured = 0;
+    for (const c of f1.chans) {
+      if (!S.ch[c].en || !f2.data[c]) continue;
+      const a = measure(f1.data[c], f1.rate, 1).freq, b = measure(f2.data[c], f2.rate, 1).freq;
+      if (!a || !b) continue;
+      measured++;
+      // If the first reading is real, it must predict the second one.
+      const near = a > 0.4 * f1.rate;     // measurement itself is shaky this close to Nyquist
+      if (Math.abs(aliasOf(a, f2.rate) - b) / Math.max(b, 1) > 0.04 && !found) {
+        let est = null;
+        for (let k = 1; k <= (near ? 1 : 4) && est === null; k++) {   // near the limit only the nearest alias is plausible
+          for (const sg of [-1, 1]) {
+            const cand = k * f1.rate + sg * a;
+            if (cand > 0 && Math.abs(aliasOf(cand, f2.rate) - b) / b < 0.04 && (est === null || cand < est)) est = cand;
+          }
+        }
+        if (est !== null || !near) found = { c, a, b, est, fs: f1.rate };
+      }
+    }
+    S.alias = found; S.aliasRate = p.rate;
+    aliasNote = found ? 'ALIASED' : measured ? 'OK' : 'no periodic signal';
+    if (manual) toast(found ? 'Aliasing detected on CH' + (found.c + 1) : measured ? 'No aliasing detected' : 'Alias check needs a periodic signal');
+  } catch (e) {
+    aliasNote = 'check failed';
+  } finally {
+    Dev.send(devCfg());
+    S.probing = false;
+    updateAliasUi();
+  }
+}
+function scheduleProbe(ms = 1500) {
+  clearTimeout(probeTimer);
+  probeTimer = setTimeout(() => aliasProbe(false), ms);
+}
+function updateAliasUi() {
+  const box = $('#alias'), chip = $('#aliasChip');
+  const a = S.alias && S.aliasRate === plan().rate ? S.alias : null;
+  let msg = '';
+  if (a) {
+    const lim = a.fs / 2;
+    const where = !a.est ? `The signal is far above the ${si(lim, 'Hz')} limit.`
+      : a.est < lim * 1.05 ? `The signal is at the ${si(lim, 'Hz')} limit.`
+      : `True frequency is probably about ${si(a.est, 'Hz')}, above the ${si(lim, 'Hz')} limit.`;
+    msg = `Aliasing: CH${a.c + 1} reads ${si(a.a, 'Hz')} at ${si(a.fs, 'S/s')}, but the reading changes with sample rate. ${where}`;
+  } else if (S.near) {
+    msg = `CH${S.near.c + 1} at ${si(S.near.f, 'Hz')} is close to the ${si(S.near.fs / 2, 'Hz')} limit (half the sample rate). Readings may be aliased.`;
+  }
+  box.style.display = msg ? 'block' : 'none';
+  if (msg) box.textContent = msg;
+  chip.style.display = a ? 'flex' : 'none';
+  const out = $('#aliasOut');
+  if (out) {
+    out.textContent = a ? 'ALIASED' : S.near ? 'near limit' : aliasNote;
+    out.style.color = a || S.near ? 'var(--warn)' : '';
+  }
+}
+$('#btnAlias').onclick = () => aliasProbe(true);
+setInterval(() => aliasProbe(false), 5000);
+
+/* generator */
+function syncGenUi() {
+  $('#genOn').checked = S.gen.on;
+  if (document.activeElement !== $('#genFreq')) $('#genFreq').value = si(S.gen.freq, 'Hz');
+  $('#genDuty').value = S.gen.duty; $('#genDutyVal').textContent = S.gen.duty + ' %';
+  $('#genNote').textContent = S.gen.on ? '3.3 V, GP15' : 'off';
+}
+$('#genOn').onchange = e => { S.gen.on = e.target.checked; syncGenUi(); pushGen(); };
+$('#genFreq').addEventListener('change', e => {
+  const f = parseSI(e.target.value);
+  if (isFinite(f) && f >= 8 && f <= 2e6) { S.gen.freq = Math.round(f); pushGen(); } else toast('Frequency 8 Hz to 2 MHz');
+  syncGenUi();
+});
+$$('.pill[data-f]').forEach(p => p.onclick = () => { S.gen.freq = +p.dataset.f; S.gen.on = true; syncGenUi(); pushGen(); });
+$('#genDuty').oninput = e => { S.gen.duty = +e.target.value; syncGenUi(); pushGen(); };
+
+/* misc side controls */
+$('#tdDn').onclick = () => stepTdiv(-1);
+$('#tdUp').onclick = () => stepTdiv(1);
+$('#tPos').oninput = e => { S.trig.pre = +e.target.value; syncTimebaseUi(); pushCfg(); };
+$('#tLvl').oninput = e => { S.trig.level = +e.target.value; syncTrigUi(); pushCfg(); };
+$('#fftOn').onchange = e => setFft(e.target.checked);
+function setFft(on) {
+  S.fft.on = on; $('#fftOn').checked = on;
+  fftCv.style.display = on ? 'block' : 'none';
+  savePrefs(); pushCfg(true); redraw(); setTimeout(redraw, 30);
+}
+$('#vref').addEventListener('change', e => {
+  const v = parseFloat(e.target.value);
+  if (v >= 3.0 && v <= 3.6) { S.vref = v; savePrefs(); syncTrigUi(); pushCfg(true); toast('ADC reference ' + v.toFixed(3) + ' V'); }
+  $('#vref').value = S.vref.toFixed(3);
+});
+
+/* segmented controls */
+$('#segSrc').innerHTML = [0, 1, 2].map(i => `<button data-v="${i}">CH${i + 1}</button>`).join('');
+$('#segAvg').innerHTML = [1, 4, 16, 64].map(n => `<button data-v="${n}">${n === 1 ? 'Off' : n}</button>`).join('');
+refreshers.src = seg('#segSrc', () => S.trig.src, v => { if (S.ch[v].en) { S.trig.src = v; syncTrigUi(); pushCfg(true); } }, Number);
+refreshers.edge = seg('#segEdge', () => S.trig.edge, v => { S.trig.edge = v; updateInfo(); pushCfg(true); });
+refreshers.mode = seg('#segMode', () => S.trig.mode, v => {
+  S.trig.mode = v;
+  if (v === 'roll' && S.tdiv < 0.01) { S.tdiv = 0.01; syncTimebaseUi(); toast('Roll mode needs 10 ms/div or slower'); }
+  updateInfo(); syncTimebaseUi(); pushCfg(true);
+});
+refreshers.hyst = seg('#segHyst', () => S.trig.hyst, v => { S.trig.hyst = v; pushCfg(true); }, Number);
+refreshers.avg = seg('#segAvg', () => S.avg, v => { S.avg = v; resetAverage(); savePrefs(); updateInfo(); }, Number);
+seg('#segInterp', () => S.interp, v => { S.interp = v; savePrefs(); clearPersist(); redraw(); });
+seg('#segPersist', () => S.persist, v => { S.persist = v; savePrefs(); clearPersist(); redraw(); }, Number);
+seg('#segGrid', () => S.grid, v => { S.grid = v; savePrefs(); redraw(); });
+refreshers.cur = seg('#segCur', () => S.cursors, v => { S.cursors = v; savePrefs(); redraw(); });
+seg('#segFftN', () => S.fft.n, v => { S.fft.n = v; savePrefs(); pushCfg(true); }, Number);
+seg('#segFftW', () => S.fft.win, v => { S.fft.win = v; savePrefs(); redraw(); });
+seg('#segFftX', () => S.fft.x, v => { S.fft.x = v; savePrefs(); redraw(); });
+
+/* ================================================================== */
+/* status, connection, export, shortcuts                              */
+/* ================================================================== */
+function setConn() {
+  const m = Dev.mode, dot = $('#dotConn');
+  const map = { live: ['var(--ok)', 'Live'], demo: ['var(--warn)', 'Demo signals'], connecting: ['var(--wait)', 'Connecting...'], offline: ['var(--bad)', 'Disconnected'] };
+  const [c, t] = map[m];
+  dot.style.background = c;
+  $('#txtConn').textContent = m === 'live' && S.info ? `Live ${S.info.ip || Dev.host}` : t;
+  const bn = $('#banner');
+  bn.style.display = m === 'offline' ? 'block' : 'none';
+  bn.textContent = 'Connection lost, retrying...';
+  updateStatus(); redraw();
+}
+function updateStatus() {
+  const i = S.info || {};
+  const parts = [];
+  parts.push(`<span>link <b>${Dev.mode}</b></span>`);
+  if (i.fw) parts.push(`<span>fw <b>${i.fw}</b></span>`);
+  if (i.ip) parts.push(`<span>ip <b>${i.ip}</b>${i.net === 'ap' ? ' (own AP)' : ''}</span>`);
+  parts.push(`<span>frames <b>${S.fps}</b>/s</span>`);
+  if (S.heap) parts.push(`<span>heap <b>${(S.heap / 1024).toFixed(0)}</b> KB</span>`);
+  if (S.rssi !== null) parts.push(`<span>rssi <b>${S.rssi}</b> dBm</span>`);
+  if (S.up) parts.push(`<span>up <b>${S.up >= 3600 ? Math.floor(S.up / 3600) + 'h ' : ''}${Math.floor(S.up % 3600 / 60)}m ${S.up % 60}s</b></span>`);
+  parts.push('<span class="spacer"></span><span>12-bit ADC, 0 to 3.3 V, usable bandwidth about 100 kHz</span>');
+  $('#status').innerHTML = parts.join('');
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const stamp = () => new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+function savePng() {
+  drawScope();
+  const w = scopeCv.width, h = scopeCv.height + (S.fft.on ? fftCv.height : 0);
+  const o = document.createElement('canvas'); o.width = w; o.height = h;
+  const g = o.getContext('2d');
+  g.drawImage(scopeCv, 0, 0);
+  if (S.fft.on) { drawFft(); g.drawImage(fftCv, 0, scopeCv.height); }
+  o.toBlob(b => { download(b, `hadosoku-${stamp()}.png`); toast('Screenshot saved'); });
+}
+function saveCsv() {
+  const f = S.frame; if (!f) return toast('No data yet');
+  const head = ['time_s', ...f.chans.map(c => `ch${c + 1}_V`)].join(',');
+  const rows = [];
+  const t0 = f.roll ? f.n - 1 : f.pre >= 0 ? f.pre : 0;
+  for (let i = 0; i < f.n; i++) rows.push([((i - t0) / f.rate).toExponential(6), ...f.chans.map(c => (f.data[c][i] * S.ch[c].probe).toFixed(4))].join(','));
+  download(new Blob([head + '\n' + rows.join('\n') + '\n'], { type: 'text/csv' }), `hadosoku-${stamp()}.csv`);
+  toast('CSV saved');
+}
+$('#btnPng').onclick = savePng;
+$('#btnCsv').onclick = saveCsv;
+$('#btnHelp').onclick = () => $('#dlgHelp').showModal();
+$('#helpClose').onclick = () => $('#dlgHelp').close();
+$('#btnTheme').onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const nx = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = nx;
+  try { localStorage.setItem('hadosoku.theme', nx); } catch (e) { /* ignore */ }
+};
+try { const t = localStorage.getItem('hadosoku.theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* ignore */ }
+
+$('#btnConn').onclick = () => { $('#connHost').value = Dev.host || ''; $('#dlgConn').showModal(); };
+$('#connGo').onclick = () => {
+  const h = $('#connHost').value.trim();
+  $('#dlgConn').close();
+  if (h) Dev.connect(h); else Dev.demo();
+};
+$('#connDemo').onclick = () => { $('#dlgConn').close(); Dev.demo(); };
+$('#connHost').addEventListener('keydown', e => { if (e.key === 'Enter') $('#connGo').click(); });
+
+addEventListener('keydown', e => {
+  if (e.target.matches('input[type=text],select') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === ' ') { e.preventDefault(); $('#btnRun').click(); }
+  else if (k === 's' || k === 'S') startSingle();
+  else if (k === 'a' || k === 'A') autoset();
+  else if (k === 'ArrowLeft') { e.preventDefault(); stepTdiv(-1); }
+  else if (k === 'ArrowRight') { e.preventDefault(); stepTdiv(1); }
+  else if (k === 'ArrowUp') { e.preventDefault(); stepVdiv(S.active, 1); }
+  else if (k === 'ArrowDown') { e.preventDefault(); stepVdiv(S.active, -1); }
+  else if (k === '1' || k === '2' || k === '3') { selectChannel(+k - 1); }
+  else if (k === '!' || k === '@' || k === '#') { const c = '!@#'.indexOf(k); S.ch[c].en = !S.ch[c].en; if (!S.ch.some(x => x.en)) S.ch[c].en = true; selectChannel(c); syncTrigUi(); pushCfg(true); }
+  else if (k === 't' || k === 'T') { const m = ['auto', 'normal', 'free', 'roll']; S.trig.mode = m[(m.indexOf(S.trig.mode) + 1) % 4]; if (S.trig.mode === 'roll' && S.tdiv < 0.01) S.tdiv = 0.01; refreshers.mode(); syncTimebaseUi(); pushCfg(true); toast('Trigger: ' + S.trig.mode); }
+  else if (k === 'e' || k === 'E') { S.trig.edge = S.trig.edge === 'r' ? 'f' : 'r'; refreshers.edge(); pushCfg(true); }
+  else if (k === 'c' || k === 'C') { const m = ['off', 'time', 'volt', 'both']; S.cursors = m[(m.indexOf(S.cursors) + 1) % 4]; refreshers.cur(); savePrefs(); redraw(); }
+  else if (k === 'f' || k === 'F') setFft(!S.fft.on);
+  else if (k === 'p' || k === 'P') savePng();
+  else if (k === '?') $('#dlgHelp').showModal();
+});
+
+new ResizeObserver(() => { clearPersist(); redraw(); }).observe($('#screens'));
+new ResizeObserver(() => redraw()).observe(scopeCv);
+
+/* ================================================================== */
+/* boot                                                               */
+/* ================================================================== */
+function boot() {
+  $('#vref').value = S.vref.toFixed(3);
+  fftCv.style.display = S.fft.on ? 'block' : 'none'; $('#fftOn').checked = S.fft.on;
+  refreshers.avg(); refreshers.cur();
+  syncChannelUi(); syncTimebaseUi(); syncTrigUi(); syncGenUi(); updateRunUi(); updateStatus(); setConn();
+  requestAnimationFrame(frameLoop);
+  const q = new URLSearchParams(location.search);
+  if (q.has('demo') || !location.host) {
+    if (q.get('device')) Dev.connect(q.get('device')); else Dev.demo();
+  } else {
+    Dev.connect(q.get('device') || location.host);
+  }
+}
+window.Hadosoku = { S, Dev, Sim, measure };
+boot();
+})();
+</script>
+</body>
+</html>

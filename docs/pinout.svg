@@ -1,0 +1,144 @@
+<svg viewBox="0 0 720 756" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+<title>Raspberry Pi Pico W pinout with Hadosoku wiring</title>
+<desc>Top view with USB at the top. Pin 20 (GP15) is the last pin on the left column. Pin 31 (GP26) is the tenth pin down the right column.</desc>
+<rect width="720" height="756" rx="14" fill="#0f1520"/>
+<text x="360" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#e6edf7">Pico W, top view (USB at top)</text>
+<rect x="270" y="62" width="180" height="620" rx="10" fill="#17613a" stroke="#2fa564" stroke-width="2"/>
+<rect x="334" y="44" width="52" height="34" rx="4" fill="#9aa3b2" stroke="#cbd2de"/>
+<text x="360" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#10151f">USB</text>
+<rect x="330" y="98" width="60" height="22" rx="3" fill="#e8e8ec"/><text x="360" y="113" text-anchor="middle" font-size="9.5" font-weight="700" fill="#10151f">BOOTSEL</text>
+<rect x="334" y="260" width="52" height="52" rx="3" fill="#1b1b1f" stroke="#555"/><text x="360" y="290" text-anchor="middle" font-size="10" fill="#cbd2de">RP2040</text>
+<rect x="331" y="560" width="58" height="52" rx="3" fill="#b8bdc8" stroke="#e5e8ee"/><text x="360" y="582" text-anchor="middle" font-size="10" font-weight="700" fill="#10151f">Wi-Fi</text><text x="360" y="596" text-anchor="middle" font-size="9" fill="#10151f">CYW43</text>
+<path d="M338 640 h8 v-14 h8 v14 h8 v-14 h8 v14 h8 v-14 h8 v14 h8" fill="none" stroke="#e0b24a" stroke-width="2"/><text x="360" y="662" text-anchor="middle" font-size="9" fill="#d9e9df">antenna</text>
+<rect x="284" y="110" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="122" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">1</text>
+<text x="272" y="122" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP0</text>
+<rect x="284" y="137" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="149" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">2</text>
+<text x="272" y="149" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP1</text>
+<rect x="284" y="164" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="314" y="176" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">3</text>
+<text x="272" y="176" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="284" y="191" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="203" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">4</text>
+<text x="272" y="203" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP2</text>
+<rect x="284" y="218" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="230" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">5</text>
+<text x="272" y="230" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP3</text>
+<rect x="284" y="245" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="257" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">6</text>
+<text x="272" y="257" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP4</text>
+<rect x="284" y="272" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="284" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">7</text>
+<text x="272" y="284" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP5</text>
+<rect x="284" y="299" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="314" y="311" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">8</text>
+<text x="272" y="311" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="284" y="326" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="338" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">9</text>
+<text x="272" y="338" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP6</text>
+<rect x="284" y="353" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="365" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">10</text>
+<text x="272" y="365" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP7</text>
+<rect x="284" y="380" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="392" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">11</text>
+<text x="272" y="392" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP8</text>
+<rect x="284" y="407" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="419" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">12</text>
+<text x="272" y="419" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP9</text>
+<rect x="284" y="434" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="314" y="446" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">13</text>
+<text x="272" y="446" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="284" y="461" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="473" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">14</text>
+<text x="272" y="473" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP10</text>
+<rect x="284" y="488" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="500" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">15</text>
+<text x="272" y="500" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP11</text>
+<rect x="284" y="515" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="527" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">16</text>
+<text x="272" y="527" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP12</text>
+<rect x="284" y="542" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="554" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">17</text>
+<text x="272" y="554" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP13</text>
+<rect x="284" y="569" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="314" y="581" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">18</text>
+<text x="272" y="581" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="284" y="596" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="314" y="608" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">19</text>
+<text x="272" y="608" text-anchor="end" font-size="13" font-weight="500" fill="#e6edf7">GP14</text>
+<circle cx="292" cy="631" r="13" fill="none" stroke="#ffd23f" stroke-width="3"/>
+<rect x="284" y="623" width="16" height="16" rx="3" fill="#ffd23f"/>
+<text x="314" y="635" text-anchor="start" font-size="11" font-weight="700" fill="#d9e9df">20</text>
+<text x="272" y="635" text-anchor="end" font-size="13" font-weight="700" fill="#ffd23f">GP15</text>
+<rect x="420" y="623" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="635" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">21</text>
+<text x="448" y="635" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP16</text>
+<rect x="420" y="596" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="608" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">22</text>
+<text x="448" y="608" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP17</text>
+<rect x="420" y="569" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="406" y="581" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">23</text>
+<text x="448" y="581" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="420" y="542" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="554" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">24</text>
+<text x="448" y="554" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP18</text>
+<rect x="420" y="515" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="527" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">25</text>
+<text x="448" y="527" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP19</text>
+<rect x="420" y="488" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="500" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">26</text>
+<text x="448" y="500" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP20</text>
+<rect x="420" y="461" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="473" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">27</text>
+<text x="448" y="473" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP21</text>
+<rect x="420" y="434" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="406" y="446" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">28</text>
+<text x="448" y="446" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="420" y="407" width="16" height="16" rx="3" fill="#4f8cff"/>
+<text x="406" y="419" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">29</text>
+<text x="448" y="419" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP22</text>
+<rect x="420" y="380" width="16" height="16" rx="3" fill="#a78bfa"/>
+<text x="406" y="392" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">30</text>
+<text x="448" y="392" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">RUN</text>
+<circle cx="428" cy="361" r="13" fill="none" stroke="#31d7f0" stroke-width="3"/>
+<rect x="420" y="353" width="16" height="16" rx="3" fill="#31d7f0"/>
+<text x="406" y="365" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">31</text>
+<text x="448" y="365" text-anchor="start" font-size="13" font-weight="700" fill="#31d7f0">GP26 / ADC0</text>
+<rect x="420" y="326" width="16" height="16" rx="3" fill="#22d3ee"/>
+<text x="406" y="338" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">32</text>
+<text x="448" y="338" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP27 / ADC1</text>
+<rect x="420" y="299" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="406" y="311" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">33</text>
+<text x="448" y="311" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">AGND</text>
+<rect x="420" y="272" width="16" height="16" rx="3" fill="#22d3ee"/>
+<text x="406" y="284" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">34</text>
+<text x="448" y="284" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GP28 / ADC2</text>
+<rect x="420" y="245" width="16" height="16" rx="3" fill="#ef4444"/>
+<text x="406" y="257" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">35</text>
+<text x="448" y="257" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">ADC_VREF</text>
+<rect x="420" y="218" width="16" height="16" rx="3" fill="#ef4444"/>
+<text x="406" y="230" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">36</text>
+<text x="448" y="230" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">3V3 OUT</text>
+<rect x="420" y="191" width="16" height="16" rx="3" fill="#ef4444"/>
+<text x="406" y="203" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">37</text>
+<text x="448" y="203" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">3V3_EN</text>
+<rect x="420" y="164" width="16" height="16" rx="3" fill="#6b7280"/>
+<text x="406" y="176" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">38</text>
+<text x="448" y="176" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">GND</text>
+<rect x="420" y="137" width="16" height="16" rx="3" fill="#ef4444"/>
+<text x="406" y="149" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">39</text>
+<text x="448" y="149" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">VSYS</text>
+<rect x="420" y="110" width="16" height="16" rx="3" fill="#ef4444"/>
+<text x="406" y="122" text-anchor="end" font-size="11" font-weight="700" fill="#d9e9df">40</text>
+<text x="448" y="122" text-anchor="start" font-size="13" font-weight="500" fill="#e6edf7">VBUS</text>
+<rect x="14" y="611" width="104" height="40" rx="8" fill="#2a2410" stroke="#ffd23f"/><text x="66" y="628" text-anchor="middle" font-size="12" font-weight="700" fill="#ffd23f">PIN 20</text><text x="66" y="644" text-anchor="middle" font-size="10" fill="#e8d9a0">bottom left</text>
+<rect x="602" y="341" width="104" height="40" rx="8" fill="#0f2a30" stroke="#31d7f0"/><text x="654" y="358" text-anchor="middle" font-size="12" font-weight="700" fill="#31d7f0">PIN 31</text><text x="654" y="374" text-anchor="middle" font-size="10" fill="#a6e8f3">right, 10th down</text>
+<text x="360" y="700" text-anchor="middle" font-size="13" font-weight="700" fill="#ffb59f">Jumper wire: pin 20 (GP15)  to  pin 31 (GP26)</text>
+<rect x="66" y="721" width="14" height="14" rx="3" fill="#ffd23f"/><text x="86" y="733" font-size="12" fill="#8b98b0">test out</text>
+<rect x="170" y="721" width="14" height="14" rx="3" fill="#31d7f0"/><text x="190" y="733" font-size="12" fill="#8b98b0">ADC input</text>
+<rect x="274" y="721" width="14" height="14" rx="3" fill="#4f8cff"/><text x="294" y="733" font-size="12" fill="#8b98b0">GPIO</text>
+<rect x="378" y="721" width="14" height="14" rx="3" fill="#ef4444"/><text x="398" y="733" font-size="12" fill="#8b98b0">power</text>
+<rect x="482" y="721" width="14" height="14" rx="3" fill="#6b7280"/><text x="502" y="733" font-size="12" fill="#8b98b0">GND</text>
+<rect x="586" y="721" width="14" height="14" rx="3" fill="#a78bfa"/><text x="606" y="733" font-size="12" fill="#8b98b0">RUN</text>
+</svg>
