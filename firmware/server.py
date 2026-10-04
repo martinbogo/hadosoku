@@ -13,7 +13,7 @@ from machine import Pin
 import capture
 import gen
 
-VERSION = '0.3'
+VERSION = '1.0'
 GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 MAGIC = 0x53
 

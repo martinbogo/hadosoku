@@ -198,7 +198,7 @@ You should see something like:
 
 ```
 wifi station 192.168.0.103
-Hadosoku 0.3 ready: http://192.168.0.103/  (station)  free=104464
+Hadosoku 1.0 ready: http://192.168.0.103/  (station)  free=98624
 ```
 
 ### 5. Open it
